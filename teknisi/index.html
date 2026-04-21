@@ -1,0 +1,2776 @@
+<!doctype html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teknisi - Service HP Manager</title>
+  <script>
+    (function protectTeknisiPage() {
+      function goToTeknisiLogin() {
+        const target = window.location.protocol === 'file:' ? 'login.html' : '/teknisi/login.html';
+        window.location.replace(target);
+      }
+
+      try {
+        const session = JSON.parse(localStorage.getItem('serviceHpManagerSession') || 'null');
+        if (!session || session.role !== 'teknisi') {
+          goToTeknisiLogin();
+        }
+      } catch (error) {
+        goToTeknisiLogin();
+      }
+    })();
+  </script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="../config.js"></script>
+  <script src="../database.js"></script>
+  <style>
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #475569 #0f172a;
+    }
+
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: #475569;
+      border: 2px solid #0f172a;
+      border-radius: 999px;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    .scroll-panel {
+      scrollbar-gutter: stable;
+    }
+
+    .scroll-panel::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .table-scroll::-webkit-scrollbar-track {
+      background: #111827;
+      border-radius: 999px;
+    }
+
+    body {
+      box-sizing: border-box;
+      color-scheme: dark;
+      background:
+        radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 30rem),
+        radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.10), transparent 26rem),
+        #0f172a;
+    }
+
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input,
+    select,
+    textarea {
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    input:hover,
+    select:hover,
+    textarea:hover {
+      border-color: #64748b;
+      background-color: #334155;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    select {
+      background-image:
+        linear-gradient(45deg, transparent 50%, #94a3b8 50%),
+        linear-gradient(135deg, #94a3b8 50%, transparent 50%);
+      background-position:
+        calc(100% - 18px) calc(50% - 3px),
+        calc(100% - 13px) calc(50% - 3px);
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 2.25rem;
+      appearance: none;
+    }
+
+    .nav-btn {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .nav-btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(6, 182, 212, 0.10));
+      opacity: 0;
+      transition: opacity 160ms ease;
+    }
+
+    .nav-btn:hover::before {
+      opacity: 1;
+    }
+
+    .nav-btn,
+    button {
+      transform: translateY(0);
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease, opacity 180ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(2, 6, 23, 0.22);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .tab-content {
+      animation: pageIn 220ms ease both;
+    }
+
+    .soft-card {
+      animation: cardIn 260ms ease both;
+    }
+
+    .toast-item {
+      animation: toastIn 260ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .toast-item.toast-out {
+      animation: toastOut 180ms ease both;
+    }
+
+    @keyframes pageIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateX(24px) scale(0.98);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+      }
+    }
+
+    @keyframes toastOut {
+      to {
+        opacity: 0;
+        transform: translateX(24px) scale(0.98);
+      }
+    }
+
+    .tab-content > .bg-slate-900,
+    .tab-content .bg-slate-900.rounded-xl {
+      background-color: rgba(15, 23, 42, 0.88);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.22);
+      backdrop-filter: blur(10px);
+    }
+
+    table th {
+      white-space: nowrap;
+    }
+
+    table td {
+      vertical-align: middle;
+    }
+
+    button,
+    select {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .role-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 0.25rem;
+      border: 1px solid rgba(51, 65, 85, 0.9);
+    }
+
+    .role-btn {
+      border-radius: 0.55rem;
+      padding: 0.55rem 0.75rem;
+      color: #94a3b8;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: none;
+    }
+
+    .role-btn.is-active {
+      color: white;
+      background: linear-gradient(135deg, #2563eb, #0891b2);
+      box-shadow: 0 12px 24px rgba(8, 145, 178, 0.18);
+    }
+
+    .role-hidden {
+      display: none !important;
+    }
+
+    .status-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 999px;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04);
+    }
+
+    .status-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      background: rgba(51, 65, 85, 0.72);
+      border: 1px solid rgba(71, 85, 105, 0.8);
+      box-shadow: none;
+    }
+
+    .status-action:hover {
+      color: white;
+      border-color: rgba(34, 211, 238, 0.45);
+      background: rgba(30, 41, 59, 0.95);
+    }
+
+    .status-action.is-next {
+      color: #cffafe;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.75), rgba(8, 145, 178, 0.75));
+      border-color: rgba(103, 232, 249, 0.28);
+    }
+
+    .service-row {
+      background: rgba(15, 23, 42, 0.36);
+    }
+
+    .service-row:hover {
+      background: rgba(30, 41, 59, 0.62);
+    }
+
+    .native-choice-hidden {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+    }
+
+    .choice-trigger {
+      min-height: 2.5rem;
+      border-radius: 0.65rem;
+      border: 1px solid rgba(71, 85, 105, 0.9);
+      background: rgba(51, 65, 85, 0.9);
+      color: #f8fafc;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .choice-trigger:hover {
+      border-color: rgba(34, 211, 238, 0.55);
+      background: rgba(71, 85, 105, 0.95);
+      box-shadow: 0 14px 30px rgba(8, 145, 178, 0.08);
+    }
+
+    #app {
+      opacity: 1;
+      transition: opacity 140ms ease;
+    }
+
+    .app-booting #app {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: none;
+    }
+  </style>
+</head>
+<body class="h-full app-booting">
+  <div id="toastContainer" class="fixed right-5 top-5 z-50 flex w-[min(24rem,calc(100vw-2.5rem))] flex-col gap-3 pointer-events-none"></div>
+  <div id="loadingOverlay" class="fixed inset-0 z-[60] hidden items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+    <div class="rounded-2xl border border-slate-700 bg-slate-900/95 p-5 text-center shadow-2xl">
+      <div class="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent"></div>
+      <p id="loadingText" class="text-sm font-semibold text-white">Memproses...</p>
+      <p class="mt-1 text-xs text-slate-400">Data sedang disinkronkan.</p>
+    </div>
+  </div>
+  <div id="devicePickerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+    <div class="soft-card w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="devicePickerTitle" class="text-xl font-bold text-white">Pilih Device</h3>
+          <p id="devicePickerSubtitle" class="mt-1 text-sm text-slate-400">Cari merek atau model HP.</p>
+        </div>
+        <button type="button" onclick="closeDevicePicker()" class="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700 hover:text-white">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <div class="mb-4">
+        <input type="text" id="devicePickerSearch" oninput="renderDevicePickerOptions()" placeholder="Cari..." class="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500">
+      </div>
+      <div id="devicePickerList" class="scroll-panel max-h-[26rem] space-y-2 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+  <div id="choicePickerModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+    <div class="soft-card w-full max-w-xl rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h3 id="choicePickerTitle" class="text-xl font-bold text-white">Pilih Data</h3>
+          <p id="choicePickerSubtitle" class="mt-1 text-sm text-slate-400">Cari dan pilih salah satu opsi.</p>
+        </div>
+        <button type="button" onclick="closeChoicePicker()" class="rounded-lg bg-slate-800 p-2 text-slate-300 hover:bg-slate-700 hover:text-white">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+      <div class="mb-4">
+        <input type="text" id="choicePickerSearch" oninput="renderChoicePickerOptions()" placeholder="Cari pilihan..." class="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-500">
+      </div>
+      <div id="choicePickerList" class="scroll-panel max-h-[24rem] space-y-2 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+  <div id="app" class="h-full w-full flex flex-col overflow-hidden">
+    <div class="flex h-full overflow-hidden">
+      <aside class="scroll-panel w-64 bg-slate-950 border-r border-slate-700 flex flex-col overflow-y-auto">
+        <div class="p-6 border-b border-slate-700">
+          <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">Service HP</h1>
+          <p class="text-xs text-slate-400 mt-1">Manager Pro</p>
+          <div class="role-switch mt-5">
+            <button type="button" onclick="setRole('admin')" class="role-btn" data-role-switch="admin">Admin</button>
+            <button type="button" onclick="setRole('teknisi')" class="role-btn is-active" data-role-switch="teknisi">Teknisi</button>
+          </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+          <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm font-medium" data-tab="dashboard" data-roles="admin">
+            <i data-lucide="home" style="width: 20px; height: 20px;"></i> Dashboard
+          </button>
+          <button onclick="switchTab('teknisi-dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-medium" data-tab="teknisi-dashboard" data-roles="teknisi">
+            <i data-lucide="wrench" style="width: 20px; height: 20px;"></i> Meja Teknisi
+          </button>
+          <div class="text-xs font-semibold text-slate-400 px-4 py-2 mt-6 mb-2" data-roles="admin,teknisi">SERVIS</div>
+          <button onclick="switchTab('servis-baru')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="servis-baru" data-roles="admin">
+            <i data-lucide="plus-circle" style="width: 20px; height: 20px;"></i> Servis Baru
+          </button>
+          <button onclick="switchTab('daftar-servis')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="daftar-servis" data-roles="admin,teknisi">
+            <i data-lucide="list" style="width: 20px; height: 20px;"></i> Daftar Servis
+          </button>
+          <div class="text-xs font-semibold text-slate-400 px-4 py-2 mt-6 mb-2" data-roles="admin">KASIR</div>
+          <button onclick="switchTab('kasir')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="kasir" data-roles="admin">
+            <i data-lucide="credit-card" style="width: 20px; height: 20px;"></i> Pembayaran Servis
+          </button>
+          <div class="text-xs font-semibold text-slate-400 px-4 py-2 mt-6 mb-2" data-roles="admin,teknisi">GARANSI</div>
+          <button onclick="switchTab('garansi')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="garansi" data-roles="admin,teknisi">
+            <i data-lucide="shield" style="width: 20px; height: 20px;"></i> Cek Garansi
+          </button>
+          <button onclick="switchTab('klaim-garansi')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="klaim-garansi" data-roles="admin,teknisi">
+            <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i> Klaim Garansi
+          </button>
+          <div class="text-xs font-semibold text-slate-400 px-4 py-2 mt-6 mb-2" data-roles="admin">KEUANGAN</div>
+          <button onclick="switchTab('keuangan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="keuangan" data-roles="admin">
+            <i data-lucide="wallet" style="width: 20px; height: 20px;"></i> Pengeluaran
+          </button>
+          <button onclick="switchTab('laporan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="laporan" data-roles="admin">
+            <i data-lucide="bar-chart-3" style="width: 20px; height: 20px;"></i> Laporan
+          </button>
+          <div class="text-xs font-semibold text-slate-400 px-4 py-2 mt-6 mb-2" data-roles="admin">DATA TOKO</div>
+          <button onclick="switchTab('stok')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="stok" data-roles="admin">
+            <i data-lucide="package" style="width: 20px; height: 20px;"></i> Stok Sparepart
+          </button>
+          <button onclick="switchTab('pelanggan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-all text-sm" data-tab="pelanggan" data-roles="admin">
+            <i data-lucide="users" style="width: 20px; height: 20px;"></i> Pelanggan
+          </button>
+        </nav>
+        <div class="p-4 border-t border-slate-700">
+          <button type="button" onclick="logout()" class="w-full flex items-center gap-3 rounded-lg border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200 hover:bg-red-500/15 hover:text-white transition-all">
+            <i data-lucide="log-out" style="width: 20px; height: 20px;"></i> Keluar
+          </button>
+        </div>
+      </aside>
+
+      <main class="scroll-panel flex-1 overflow-y-auto bg-slate-800">
+        <div id="dashboard" class="tab-content hidden p-8">
+          <div class="mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Dashboard</h2>
+            <p class="text-slate-400" id="currentDate"></p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Pendapatan Bersih Hari Ini</p>
+                <i data-lucide="trending-up" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="dailyIncome">Rp 0</p>
+            </div>
+            <div class="bg-gradient-to-br from-red-500 to-rose-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Pengeluaran Hari Ini</p>
+                <i data-lucide="trending-down" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="dailyExpense">Rp 0</p>
+            </div>
+            <div class="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Sedang Dikerjakan</p>
+                <i data-lucide="wrench" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="processingCount">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Garansi Aktif</p>
+                <i data-lucide="shield" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="activeWarrantyCount">0</p>
+            </div>
+          </div>
+          <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              <i data-lucide="activity" style="width: 20px; height: 20px;"></i> Aktivitas Terbaru
+            </h3>
+            <div id="activityFeed" class="space-y-3">
+              <p class="text-slate-400 text-sm">Belum ada aktivitas</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="teknisi-dashboard" class="tab-content p-8">
+          <div class="mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">Meja Teknisi</h2>
+            <p class="text-slate-400">Antrian servis, pengecekan, dan pekerjaan teknisi.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Baru Masuk</p>
+                <i data-lucide="inbox" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="techReceivedCount">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-yellow-500 to-amber-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Perlu Dicek</p>
+                <i data-lucide="search-check" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="techCheckCount">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Dikerjakan</p>
+                <i data-lucide="wrench" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="techWorkingCount">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-medium opacity-90">Selesai</p>
+                <i data-lucide="check-circle-2" style="width: 24px; height: 24px;"></i>
+              </div>
+              <p class="text-3xl font-bold" id="techDoneCount">0</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 bg-slate-900 rounded-xl border border-slate-700 p-6">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <h3 class="text-lg font-semibold text-white">Antrian Pekerjaan</h3>
+                <select id="technicianQueueFilter" onchange="updateTechnicianDashboard()" class="w-52 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="">Semua Pekerjaan</option>
+                  <option value="diterima">Diterima</option>
+                  <option value="dicek">Dicek</option>
+                  <option value="menunggu persetujuan">Menunggu Persetujuan</option>
+                  <option value="sedang dikerjakan">Sedang Dikerjakan</option>
+                  <option value="selesai">Selesai</option>
+                </select>
+              </div>
+              <div id="technicianQueue" class="space-y-3">
+                <p class="text-slate-400 text-center py-4">Belum ada pekerjaan teknisi</p>
+              </div>
+            </div>
+            <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+              <h3 class="text-lg font-semibold text-white mb-4">Klaim Perlu Dicek</h3>
+              <div id="technicianClaimQueue" class="space-y-3">
+                <p class="text-slate-400 text-center py-4">Belum ada klaim aktif</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="servis-baru" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Transaksi Servis Baru</h2>
+          <div class="bg-slate-900 rounded-xl border border-slate-700 p-8 max-w-2xl">
+            <form id="formServisBaru" class="space-y-5">
+              <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 class="text-sm font-semibold text-cyan-400 mb-3">Data Pelanggan</h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nama Pelanggan</label>
+                    <input type="text" id="customerName" required class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">No HP / WhatsApp</label>
+                    <input type="tel" id="customerPhone" required class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Alamat</label>
+                    <textarea id="customerAddress" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 class="text-sm font-semibold text-cyan-400 mb-3">Data Device</h3>
+                <div class="space-y-3">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Merek</label>
+                      <button type="button" onclick="openDevicePicker('brand')" id="deviceBrandButton" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-left text-white text-sm focus:outline-none focus:border-cyan-500">Pilih merek HP</button>
+                      <input type="hidden" id="deviceBrand" required>
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Model/Tipe</label>
+                      <button type="button" onclick="openDevicePicker('model')" id="deviceModelButton" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-left text-white text-sm focus:outline-none focus:border-cyan-500">Pilih model / tipe</button>
+                      <input type="hidden" id="deviceModel" required>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">IMEI / Serial Number</label>
+                    <input type="text" id="deviceIMEI" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Warna</label>
+                    <input type="text" id="deviceColor" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 class="text-sm font-semibold text-cyan-400 mb-3">Keluhan &amp; Pengecekan</h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Keluhan Pelanggan</label>
+                    <textarea id="complaint" required placeholder="Tidak bisa nyala, layar blank, dll" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Hasil Pengecekan Awal</label>
+                    <textarea id="initialCheck" placeholder="IC charger rusak, dll" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h3 class="text-sm font-semibold text-cyan-400 mb-3">Kerusakan &amp; Penanganan</h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Daftar Kerusakan</label>
+                    <select id="damageType" required onchange="updateDamagePreview()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                      <option value="">Pilih jenis kerusakan</option>
+                    </select>
+                  </div>
+                  <div id="damagePreview" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">DP / Uang Muka</label>
+                    <input type="text" inputmode="numeric" id="downPayment" value="Rp 0" data-currency class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Teknisi</label>
+                    <input type="text" id="technician" placeholder="Nama teknisi" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Cakupan Garansi</label>
+                    <input type="text" id="warrantyCoverage" placeholder="Contoh: LCD, konektor charger, IC power" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Pengecualian Garansi</label>
+                    <textarea id="warrantyExclusion" placeholder="Contoh: tidak berlaku jika pecah, kena air, segel rusak" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <label class="block text-xs font-medium text-slate-300 mb-1">Catatan Tambahan</label>
+                <textarea id="notes" placeholder="Catatan penting lainnya" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+              </div>
+              <button type="submit" id="submitServisBaru" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold py-3 rounded-lg transition-all">Simpan Transaksi Servis</button>
+            </form>
+          </div>
+        </div>
+
+        <div id="daftar-servis" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Daftar Servis</h2>
+          <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-slate-300 mb-1">Cari Servis</label>
+                <input type="text" id="serviceSearch" oninput="updateDaftarServis()" placeholder="No transaksi, nama, no HP, IMEI, tipe HP" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Status Servis</label>
+                <select id="serviceStatusFilter" onchange="updateDaftarServis()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="">Semua Status</option>
+                  <option value="diterima">Diterima</option>
+                  <option value="dicek">Dicek</option>
+                  <option value="menunggu persetujuan">Menunggu Persetujuan</option>
+                  <option value="sedang dikerjakan">Sedang Dikerjakan</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="sudah diambil">Sudah Diambil</option>
+                  <option value="batal">Batal</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Pembayaran</label>
+                <select id="paymentStatusFilter" onchange="updateDaftarServis()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="">Semua Pembayaran</option>
+                  <option value="belum bayar">Belum Bayar</option>
+                  <option value="dp">DP</option>
+                  <option value="lunas">Lunas</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="table-scroll bg-slate-900 rounded-xl border border-slate-700 p-6 overflow-x-auto">
+            <table class="w-full text-sm text-slate-300">
+              <thead class="border-b border-slate-600">
+                <tr>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">No Transaksi</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Pelanggan</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Device</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Status</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Bayar</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Biaya</th>
+                  <th class="text-left py-3 px-4 font-semibold text-slate-200">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="daftarServisTable" class="divide-y divide-slate-700">
+                <tr class="hover:bg-slate-800 transition-colors">
+                  <td colspan="7" class="py-8 px-4 text-center text-slate-400">Belum ada data servis</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="serviceDetailPanel" class="mt-4 bg-slate-900 rounded-xl border border-slate-700 p-6 hidden"></div>
+        </div>
+
+        <div id="kasir" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Pembayaran Servis</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 sticky top-8">
+                <h3 class="text-lg font-semibold text-white mb-4">Cari Transaksi</h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">No Transaksi</label>
+                    <input type="text" id="searchTransactionNo" placeholder="SRV-2026-..." class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <button type="button" onclick="searchTransaction()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-all text-sm font-medium">Cari</button>
+                </div>
+              </div>
+            </div>
+            <div class="lg:col-span-2">
+              <div id="paymentDetail" class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+                <p class="text-slate-400 text-center py-8">Cari transaksi untuk melihat detail pembayaran</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="garansi" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Cek Garansi Servis</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 sticky top-8">
+                <h3 class="text-lg font-semibold text-white mb-4">Cari Garansi</h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-2">Pilih Pencarian</label>
+                    <select id="warrantySearchType" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                      <option value="transactionNo">No Transaksi</option>
+                      <option value="phone">No HP Pelanggan</option>
+                      <option value="imei">IMEI / Serial</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Masukkan Data</label>
+                    <input type="text" id="warrantySearchQuery" placeholder="Cari..." class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <button type="button" onclick="searchWarranty()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-all text-sm font-medium">Cari Garansi</button>
+                </div>
+              </div>
+            </div>
+            <div class="lg:col-span-2">
+              <div id="warrantyResult" class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+                <p class="text-slate-400 text-center py-8">Masukkan data untuk cek status garansi</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="klaim-garansi" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Klaim Garansi</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 sticky top-8">
+                <h3 class="text-lg font-semibold text-white mb-4">Buat Klaim</h3>
+                <form id="formKlaimGaransi" class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">No Transaksi</label>
+                    <input type="text" id="claimTransactionNo" required placeholder="SRV-2026-00001" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Keluhan Klaim</label>
+                    <textarea id="claimComplaint" required placeholder="Keluhan setelah servis" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="3"></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Catatan Teknisi</label>
+                    <textarea id="claimTechNote" placeholder="Hasil pengecekan klaim" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" rows="2"></textarea>
+                  </div>
+                  <button type="submit" id="submitClaim" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white py-2 rounded-lg transition-all text-sm font-medium">Simpan Klaim</button>
+                </form>
+              </div>
+            </div>
+            <div class="lg:col-span-2">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+                <h3 class="text-lg font-semibold text-white mb-4">Riwayat Klaim Garansi</h3>
+                <div id="claimList" class="space-y-3">
+                  <p class="text-slate-400 text-center py-4">Belum ada klaim garansi</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="keuangan" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Catatan Pengeluaran</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 sticky top-8">
+                <h3 class="text-lg font-semibold text-white mb-4">Input Pengeluaran</h3>
+                <form id="formPengeluaran" class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Kategori</label>
+                    <select id="expenseCategory" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                      <option value="sparepart">Beli Sparepart</option>
+                      <option value="gaji">Gaji Teknisi</option>
+                      <option value="listrik">Listrik</option>
+                      <option value="sewa">Sewa Toko</option>
+                      <option value="internet">Internet</option>
+                      <option value="transport">Transport</option>
+                      <option value="alat">Alat Kerja</option>
+                      <option value="lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Jumlah</label>
+                    <input type="text" inputmode="numeric" id="expenseAmount" required placeholder="Rp 0" data-currency class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Keterangan</label>
+                    <input type="text" id="expenseDesc" placeholder="Detail pengeluaran" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <button type="submit" id="submitExpense" class="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white py-2 rounded-lg transition-all text-sm font-medium">Simpan Pengeluaran</button>
+                </form>
+              </div>
+            </div>
+            <div class="lg:col-span-2">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+                <h3 class="text-lg font-semibold text-white mb-4">Daftar Pengeluaran Hari Ini</h3>
+                <div id="expenseList" class="space-y-3">
+                  <p class="text-slate-400 text-center py-4">Belum ada pengeluaran</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="laporan" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Laporan Keuangan</h2>
+          <div class="bg-slate-900 rounded-xl border border-slate-700 p-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Periode</label>
+                <select id="reportPeriod" onchange="updateReports()" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="today">Hari Ini</option>
+                  <option value="week">7 Hari Terakhir</option>
+                  <option value="month">Bulan Ini</option>
+                  <option value="all">Semua Data</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="reportSummary" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+              <h3 class="text-lg font-semibold text-white mb-4">Ringkasan Servis</h3>
+              <div id="serviceReportList" class="space-y-3"></div>
+            </div>
+            <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+              <h3 class="text-lg font-semibold text-white mb-4">Ringkasan Pengeluaran</h3>
+              <div id="expenseReportList" class="space-y-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="stok" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Stok Sparepart</h2>
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6 sticky top-8">
+                <h3 class="text-lg font-semibold text-white mb-4">Tambah Sparepart</h3>
+                <form id="formSparepart" class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Nama Sparepart</label>
+                    <input type="text" id="partName" required placeholder="LCD Oppo A57" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Kategori</label>
+                    <select id="partCategory" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                      <option value="lcd">LCD</option>
+                      <option value="baterai">Baterai</option>
+                      <option value="charger">Konektor Charger</option>
+                      <option value="ic">IC</option>
+                      <option value="speaker">Speaker</option>
+                      <option value="kamera">Kamera</option>
+                      <option value="casing">Casing</option>
+                      <option value="lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Stok</label>
+                      <input type="number" id="partStock" required value="1" min="0" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Minimum</label>
+                      <input type="number" id="partMinStock" value="1" min="0" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Harga Modal</label>
+                      <input type="text" inputmode="numeric" id="partCost" value="Rp 0" data-currency class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <div>
+                      <label class="block text-xs font-medium text-slate-300 mb-1">Harga Jual</label>
+                      <input type="text" inputmode="numeric" id="partPrice" value="Rp 0" data-currency class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">Supplier</label>
+                    <input type="text" id="partSupplier" placeholder="Nama supplier" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  </div>
+                  <button type="submit" id="submitPart" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-2 rounded-lg transition-all text-sm font-medium">Simpan Sparepart</button>
+                </form>
+              </div>
+            </div>
+            <div class="lg:col-span-2">
+              <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+                <div class="flex items-center justify-between gap-3 mb-4">
+                  <h3 class="text-lg font-semibold text-white">Daftar Sparepart</h3>
+                  <input type="text" id="partSearch" oninput="updateInventoryList()" placeholder="Cari sparepart" class="w-56 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                </div>
+                <div id="inventoryList" class="space-y-3">
+                  <p class="text-slate-400 text-center py-4">Belum ada sparepart</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="pelanggan" class="tab-content hidden p-8">
+          <h2 class="text-3xl font-bold text-white mb-6">Data Pelanggan</h2>
+          <div class="bg-slate-900 rounded-xl border border-slate-700 p-6">
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <h3 class="text-lg font-semibold text-white">Riwayat Pelanggan</h3>
+              <input type="text" id="customerSearch" oninput="updateCustomerList()" placeholder="Cari nama atau no HP" class="w-64 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            </div>
+            <div id="customerList" class="space-y-3">
+              <p class="text-slate-400 text-center py-4">Belum ada pelanggan</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'serviceHpManagerData';
+    const DEVICE_CATALOG = {
+      'Apple': ['iPhone 16 Pro Max', 'iPhone 16 Pro', 'iPhone 16 Plus', 'iPhone 16', 'iPhone 16e', 'iPhone 15 Pro Max', 'iPhone 15 Pro', 'iPhone 15 Plus', 'iPhone 15', 'iPhone 14 Pro Max', 'iPhone 14 Pro', 'iPhone 14 Plus', 'iPhone 14', 'iPhone 13 Pro Max', 'iPhone 13 Pro', 'iPhone 13 mini', 'iPhone 13', 'iPhone 12 Pro Max', 'iPhone 12 Pro', 'iPhone 12 mini', 'iPhone 12', 'iPhone 11 Pro Max', 'iPhone 11 Pro', 'iPhone 11', 'iPhone XR', 'iPhone XS Max', 'iPhone XS', 'iPhone X', 'iPhone 8 Plus', 'iPhone 8', 'iPhone 7 Plus', 'iPhone 7', 'iPhone SE 3', 'iPhone SE 2', 'iPhone SE'],
+      'Samsung': ['Galaxy S25 Ultra', 'Galaxy S25+', 'Galaxy S25 Edge', 'Galaxy S25', 'Galaxy S24 Ultra', 'Galaxy S24 FE', 'Galaxy S24+', 'Galaxy S24', 'Galaxy S23 Ultra', 'Galaxy S23 FE', 'Galaxy S23+', 'Galaxy S23', 'Galaxy S22 Ultra', 'Galaxy S22+', 'Galaxy S22', 'Galaxy S21 Ultra', 'Galaxy S21 FE', 'Galaxy S21+', 'Galaxy S21', 'Galaxy Note20 Ultra', 'Galaxy Note20', 'Galaxy Z Fold6', 'Galaxy Z Flip6', 'Galaxy Z Fold5', 'Galaxy Z Flip5', 'Galaxy Z Fold4', 'Galaxy Z Flip4', 'Galaxy A56 5G', 'Galaxy A55 5G', 'Galaxy A54 5G', 'Galaxy A53 5G', 'Galaxy A52s 5G', 'Galaxy A52', 'Galaxy A36 5G', 'Galaxy A35 5G', 'Galaxy A34 5G', 'Galaxy A33 5G', 'Galaxy A26 5G', 'Galaxy A25 5G', 'Galaxy A24', 'Galaxy A23', 'Galaxy A16', 'Galaxy A15 5G', 'Galaxy A15', 'Galaxy A14 5G', 'Galaxy A14', 'Galaxy A13', 'Galaxy A12', 'Galaxy A06', 'Galaxy A05s', 'Galaxy A05', 'Galaxy A04s', 'Galaxy A04', 'Galaxy M55 5G', 'Galaxy M54 5G', 'Galaxy M35 5G', 'Galaxy M34 5G', 'Galaxy M33 5G', 'Galaxy M23 5G'],
+      'Xiaomi': ['Xiaomi 15 Ultra', 'Xiaomi 15', 'Xiaomi 14T Pro', 'Xiaomi 14T', 'Xiaomi 14 Ultra', 'Xiaomi 14', 'Xiaomi 13T Pro', 'Xiaomi 13T', 'Xiaomi 13 Lite', 'Xiaomi 13', 'Xiaomi 12T Pro', 'Xiaomi 12T', 'Xiaomi 12 Lite', 'Xiaomi 12', 'Xiaomi 11T Pro', 'Xiaomi 11T', 'Mi 11 Ultra', 'Mi 11 Lite', 'Mi 11', 'Mi 10T Pro', 'Mi 10T', 'Mi 10'],
+      'Redmi': ['Redmi Note 14 Pro+ 5G', 'Redmi Note 14 Pro 5G', 'Redmi Note 14 Pro', 'Redmi Note 14 5G', 'Redmi Note 14', 'Redmi Note 13 Pro+ 5G', 'Redmi Note 13 Pro 5G', 'Redmi Note 13 Pro', 'Redmi Note 13 5G', 'Redmi Note 13', 'Redmi Note 12 Pro 5G', 'Redmi Note 12 Pro', 'Redmi Note 12 5G', 'Redmi Note 12', 'Redmi Note 11 Pro 5G', 'Redmi Note 11 Pro', 'Redmi Note 11', 'Redmi Note 10 Pro', 'Redmi Note 10S', 'Redmi Note 10', 'Redmi 14C', 'Redmi 13C', 'Redmi 13', 'Redmi 12C', 'Redmi 12', 'Redmi 10C', 'Redmi 10', 'Redmi 9T', 'Redmi 9C', 'Redmi 9A', 'Redmi A5', 'Redmi A3x', 'Redmi A3', 'Redmi A2+', 'Redmi A2', 'Redmi A1'],
+      'POCO': ['POCO F7 Ultra', 'POCO F7 Pro', 'POCO F6 Pro', 'POCO F6', 'POCO F5 Pro', 'POCO F5', 'POCO F4 GT', 'POCO F4', 'POCO F3', 'POCO X7 Pro', 'POCO X7', 'POCO X6 Pro', 'POCO X6 5G', 'POCO X6', 'POCO X5 Pro 5G', 'POCO X5 5G', 'POCO X4 Pro 5G', 'POCO X3 Pro', 'POCO X3 NFC', 'POCO M7 Pro 5G', 'POCO M6 Pro', 'POCO M6', 'POCO M5s', 'POCO M5', 'POCO M4 Pro', 'POCO M3 Pro 5G', 'POCO M3', 'POCO C75', 'POCO C65', 'POCO C55', 'POCO C40'],
+      'OPPO': ['OPPO Find X8 Pro', 'OPPO Find X8', 'OPPO Find N3', 'OPPO Find X5 Pro', 'OPPO Find X5', 'OPPO Find X3 Pro', 'OPPO Reno13 Pro 5G', 'OPPO Reno13 5G', 'OPPO Reno12 Pro 5G', 'OPPO Reno12 5G', 'OPPO Reno11 Pro 5G', 'OPPO Reno11 5G', 'OPPO Reno10 Pro+ 5G', 'OPPO Reno10 Pro 5G', 'OPPO Reno10 5G', 'OPPO Reno8 T 5G', 'OPPO Reno8 5G', 'OPPO Reno7 5G', 'OPPO Reno6', 'OPPO Reno5', 'OPPO A98 5G', 'OPPO A96', 'OPPO A95', 'OPPO A92', 'OPPO A78', 'OPPO A77s', 'OPPO A76', 'OPPO A74', 'OPPO A60', 'OPPO A58', 'OPPO A57', 'OPPO A55', 'OPPO A54', 'OPPO A53', 'OPPO A52', 'OPPO A38', 'OPPO A31', 'OPPO A18', 'OPPO A17', 'OPPO A16', 'OPPO A15', 'OPPO A12', 'OPPO F11 Pro', 'OPPO F9', 'OPPO F7'],
+      'Vivo': ['vivo X200 Pro', 'vivo X200', 'vivo X100 Pro', 'vivo X100', 'vivo X90 Pro', 'vivo X80 Pro', 'vivo V50 Lite', 'vivo V50', 'vivo V40 5G', 'vivo V40 Lite', 'vivo V30 Pro', 'vivo V30', 'vivo V30e', 'vivo V29e', 'vivo V29', 'vivo V27 5G', 'vivo V25 Pro', 'vivo V25', 'vivo V23 5G', 'vivo Y100 5G', 'vivo Y36', 'vivo Y35', 'vivo Y33s', 'vivo Y28', 'vivo Y27', 'vivo Y22', 'vivo Y21', 'vivo Y20', 'vivo Y19s', 'vivo Y18', 'vivo Y17s', 'vivo Y16', 'vivo Y15s', 'vivo Y12s', 'vivo Y03'],
+      'iQOO': ['iQOO 13', 'iQOO 12', 'iQOO 11', 'iQOO Neo10', 'iQOO Neo9 Pro', 'iQOO Neo7', 'iQOO Z9', 'iQOO Z9x', 'iQOO Z7 5G', 'iQOO Z7x'],
+      'Realme': ['realme GT 7 Pro', 'realme GT 6', 'realme GT Neo6', 'realme GT Neo3', 'realme GT Master Edition', 'realme 13 Pro+ 5G', 'realme 13 Pro 5G', 'realme 13 5G', 'realme 12 Pro+ 5G', 'realme 12+ 5G', 'realme 12 5G', 'realme 11 Pro+ 5G', 'realme 11 Pro 5G', 'realme 11', 'realme 10 Pro+ 5G', 'realme 10 Pro 5G', 'realme 10', 'realme 9 Pro+ 5G', 'realme 9 Pro 5G', 'realme 9', 'realme 8 Pro', 'realme 8', 'realme C75', 'realme C67', 'realme C65', 'realme C63', 'realme C55', 'realme C53', 'realme C51', 'realme C35', 'realme C33', 'realme C31', 'realme Narzo 70x', 'realme Narzo 60', 'realme Narzo 50A Prime', 'realme Narzo 50A'],
+      'Infinix': ['Infinix GT 20 Pro', 'Infinix GT 10 Pro', 'Infinix Note 50 Pro', 'Infinix Note 50', 'Infinix Note 40 Pro+ 5G', 'Infinix Note 40 Pro', 'Infinix Note 40', 'Infinix Note 30 Pro', 'Infinix Note 30', 'Infinix Note 12', 'Infinix Zero 40 5G', 'Infinix Zero 30 5G', 'Infinix Zero 20', 'Infinix Hot 50 Pro+', 'Infinix Hot 50', 'Infinix Hot 40 Pro', 'Infinix Hot 40', 'Infinix Hot 30', 'Infinix Hot 20S', 'Infinix Hot 12', 'Infinix Smart 9', 'Infinix Smart 8', 'Infinix Smart 7', 'Infinix Smart 6', 'Infinix S5'],
+      'Tecno': ['Tecno Camon 30 Premier', 'Tecno Camon 30 Pro', 'Tecno Camon 30', 'Tecno Camon 20 Premier 5G', 'Tecno Camon 20 Pro', 'Tecno Camon 20', 'Tecno Spark 30 Pro', 'Tecno Spark 30', 'Tecno Spark 20 Pro+', 'Tecno Spark 20 Pro', 'Tecno Spark 20', 'Tecno Spark 10 Pro', 'Tecno Spark 10', 'Tecno Spark 8C', 'Tecno Pova 6 Pro', 'Tecno Pova 6', 'Tecno Pova 5 Pro', 'Tecno Pova 5', 'Tecno Pova Neo 3', 'Tecno Phantom V Flip', 'Tecno Phantom V Fold'],
+      'itel': ['itel S25 Ultra', 'itel S25', 'itel S24', 'itel S23+', 'itel S23', 'itel P65', 'itel P55 5G', 'itel P55 NFC', 'itel P55', 'itel P40', 'itel A80', 'itel A70', 'itel A60s', 'itel A60', 'itel A49', 'itel Vision 5', 'itel Vision 3'],
+      'ASUS': ['ROG Phone 9 Pro', 'ROG Phone 9', 'ROG Phone 8 Pro', 'ROG Phone 8', 'ROG Phone 7', 'ROG Phone 6', 'Zenfone 11 Ultra', 'Zenfone 10', 'Zenfone 9'],
+      'Huawei': ['Huawei Pura 70 Ultra', 'Huawei Pura 70', 'Huawei P60 Pro', 'Huawei Mate 50 Pro', 'Huawei Nova 12 SE', 'Huawei Nova 11', 'Huawei Nova 10', 'Huawei Y9a'],
+      'HONOR': ['HONOR Magic6 Pro', 'HONOR Magic5 Pro', 'HONOR 200 Pro', 'HONOR 200', 'HONOR 90', 'HONOR X9b', 'HONOR X8b', 'HONOR X7b'],
+      'Motorola': ['Motorola Edge 50 Pro', 'Motorola Edge 50 Fusion', 'Motorola Edge 40', 'Motorola Razr 50 Ultra', 'Motorola Razr 40 Ultra', 'Moto G85', 'Moto G54', 'Moto G34'],
+      'Nokia': ['Nokia G42 5G', 'Nokia G22', 'Nokia G21', 'Nokia C32', 'Nokia C31', 'Nokia C22', 'Nokia 5.4', 'Nokia 3.4'],
+      'HMD': ['HMD Skyline', 'HMD Pulse Pro', 'HMD Pulse+', 'HMD Pulse'],
+      'Nothing': ['Nothing Phone (2a) Plus', 'Nothing Phone (2a)', 'Nothing Phone (2)', 'Nothing Phone (1)', 'CMF Phone 1'],
+      'OnePlus': ['OnePlus 13', 'OnePlus 12', 'OnePlus 11', 'OnePlus Nord 4', 'OnePlus Nord 3', 'OnePlus Nord CE4', 'OnePlus Ace 3'],
+      'Sony': ['Sony Xperia 1 VI', 'Sony Xperia 1 V', 'Sony Xperia 5 V', 'Sony Xperia 10 VI', 'Sony Xperia 10 V'],
+      'Google': ['Google Pixel 9 Pro XL', 'Google Pixel 9 Pro', 'Google Pixel 9', 'Google Pixel 8 Pro', 'Google Pixel 8', 'Google Pixel 7 Pro', 'Google Pixel 7a'],
+      'Sharp': ['Sharp Aquos R9', 'Sharp Aquos R8s Pro', 'Sharp Aquos Sense8', 'Sharp Aquos V7 Plus', 'Sharp Aquos Wish4'],
+      'Advan': ['Advan GX', 'Advan G9 Pro', 'Advan NASA Pro', 'Advan S50 Prime', 'Advan i6C'],
+      'Evercoss': ['Evercoss M6A', 'Evercoss M6', 'Evercoss U70C', 'Evercoss S45', 'Evercoss Xtream 2'],
+      'ZTE': ['ZTE Blade A75 5G', 'ZTE Blade V50 Design', 'ZTE Blade A54', 'ZTE Nubia Neo 2', 'ZTE Nubia Neo 5G', 'Nubia RedMagic 9 Pro'],
+      'Lenovo': ['Lenovo Legion Phone Duel 2', 'Lenovo Legion Y90', 'Lenovo K14', 'Lenovo K13 Note'],
+      'Blackview': ['Blackview BV9300', 'Blackview BV9200', 'Blackview BV8900', 'Blackview A200 Pro', 'Blackview A96'],
+      'DOOGEE': ['DOOGEE S100', 'DOOGEE S98', 'DOOGEE V30', 'DOOGEE V Max', 'DOOGEE N50'],
+      'Ulefone': ['Ulefone Armor 27T Pro', 'Ulefone Armor 26 Ultra', 'Ulefone Armor 24', 'Ulefone Armor 21', 'Ulefone Note 17 Pro'],
+      'CAT': ['CAT S75', 'CAT S62 Pro', 'CAT S42 H+', 'CAT S52'],
+      'Meizu': ['Meizu 21', 'Meizu 20 Pro', 'Meizu 20', 'Meizu 18', 'Meizu Note 9'],
+      'HTC': ['HTC U24 Pro', 'HTC U23 Pro', 'HTC Desire 22 Pro', 'HTC Wildfire E3'],
+      'LG': ['LG Wing', 'LG Velvet', 'LG V60 ThinQ', 'LG G8 ThinQ', 'LG K62'],
+      'Lava': ['Lava Blaze 5G', 'Lava Blaze 2', 'Lava Agni 2', 'Lava Yuva 3 Pro']
+    };
+    const DAMAGE_TYPES = [
+      {
+        id: 'lcd',
+        name: 'Ganti LCD / Touchscreen',
+        price: 450000,
+        estimatedDays: 2,
+        warrantyDays: 30,
+        coverage: 'LCD, touchscreen, dan pemasangan',
+        exclusion: 'Tidak berlaku jika pecah, tertekan, kena air, atau segel rusak'
+      },
+      {
+        id: 'battery',
+        name: 'Ganti Baterai',
+        price: 250000,
+        estimatedDays: 1,
+        warrantyDays: 14,
+        coverage: 'Baterai dan pemasangan',
+        exclusion: 'Tidak berlaku jika perangkat korslet, kena air, atau memakai charger tidak standar'
+      },
+      {
+        id: 'charger-port',
+        name: 'Ganti Konektor Charger',
+        price: 180000,
+        estimatedDays: 1,
+        warrantyDays: 14,
+        coverage: 'Konektor charger dan jalur pengisian',
+        exclusion: 'Tidak berlaku jika patah karena pemakaian, kena air, atau port rusak fisik'
+      },
+      {
+        id: 'software',
+        name: 'Install Ulang / Software',
+        price: 100000,
+        estimatedDays: 1,
+        warrantyDays: 7,
+        coverage: 'Sistem operasi dan konfigurasi software',
+        exclusion: 'Tidak berlaku untuk lupa akun, kerusakan memori, atau aplikasi pihak ketiga'
+      },
+      {
+        id: 'ic-power',
+        name: 'Perbaikan IC Power',
+        price: 350000,
+        estimatedDays: 3,
+        warrantyDays: 30,
+        coverage: 'IC power dan jalur power yang dikerjakan',
+        exclusion: 'Tidak berlaku jika mainboard kena air, jatuh, atau korslet lanjutan'
+      },
+      {
+        id: 'speaker',
+        name: 'Ganti Speaker / Earpiece',
+        price: 150000,
+        estimatedDays: 1,
+        warrantyDays: 14,
+        coverage: 'Speaker/earpiece dan pemasangan',
+        exclusion: 'Tidak berlaku jika kemasukan air, debu berlebih, atau rusak fisik'
+      },
+      {
+        id: 'camera',
+        name: 'Ganti Kamera',
+        price: 220000,
+        estimatedDays: 2,
+        warrantyDays: 14,
+        coverage: 'Modul kamera dan pemasangan',
+        exclusion: 'Tidak berlaku jika lensa pecah, kena air, atau kerusakan board'
+      },
+      {
+        id: 'diagnostic',
+        name: 'Jasa Cek / Diagnosa',
+        price: 50000,
+        estimatedDays: 1,
+        warrantyDays: 0,
+        coverage: 'Pengecekan awal kerusakan',
+        exclusion: 'Tidak termasuk garansi perbaikan atau penggantian sparepart'
+      }
+    ];
+
+    let allData = {
+      services: [],
+      expenses: [],
+      inventory: [],
+      warrantyClaims: [],
+      damageTypes: [],
+      nextServiceId: 1,
+      nextPartId: 1,
+      nextClaimId: 1,
+      nextDamageId: 1
+    };
+
+    let currentRole = 'teknisi';
+    let devicePickerMode = 'brand';
+    let isApplyingRemoteData = false;
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+      if (!isApplyingRemoteData && window.serviceHpDb) {
+        window.serviceHpDb.save(allData, handleDatabaseStatus);
+      }
+    }
+
+    function normalizeData(parsed = {}) {
+      return {
+        services: Array.isArray(parsed.services) ? parsed.services : [],
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+        inventory: Array.isArray(parsed.inventory) ? parsed.inventory : [],
+        warrantyClaims: Array.isArray(parsed.warrantyClaims) ? parsed.warrantyClaims : [],
+        damageTypes: Array.isArray(parsed.damageTypes) ? parsed.damageTypes : [],
+        nextServiceId: Number(parsed.nextServiceId) || 1,
+        nextPartId: Number(parsed.nextPartId) || 1,
+        nextClaimId: Number(parsed.nextClaimId) || 1,
+        nextDamageId: Number(parsed.nextDamageId) || 1
+      };
+    }
+
+    function applyDataState(nextData, source = 'local') {
+      allData = normalizeData(nextData);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+      if (source === 'remote') {
+        isApplyingRemoteData = true;
+        try {
+          populateDamageTypes();
+          refreshUI();
+        } finally {
+          isApplyingRemoteData = false;
+        }
+      }
+    }
+
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+
+      try {
+        const parsed = JSON.parse(saved);
+        applyDataState(parsed);
+      } catch (error) {
+        console.error('Gagal membaca data lokal:', error);
+      }
+    }
+
+    let loadingTimer = null;
+
+    function showLoading(message = 'Memproses...') {
+      const overlay = document.getElementById('loadingOverlay');
+      const text = document.getElementById('loadingText');
+      if (!overlay || !text) return;
+      text.textContent = message;
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+    }
+
+    function hideLoading(delay = 250) {
+      clearTimeout(loadingTimer);
+      loadingTimer = setTimeout(() => {
+        const overlay = document.getElementById('loadingOverlay');
+        if (!overlay) return;
+        overlay.classList.add('hidden');
+        overlay.classList.remove('flex');
+      }, delay);
+    }
+
+    function handleDatabaseStatus(status) {
+      if (!status) return;
+      if (status.mode === 'saving') showLoading('Menyimpan perubahan...');
+      if (status.mode === 'online' || status.mode === 'saved' || status.mode === 'local') hideLoading();
+      if (status.mode === 'error') {
+        hideLoading();
+        showToast(status.message, 'warning', 'Sinkronisasi');
+      }
+    }
+
+    async function initRealtimeDatabase() {
+      if (!window.serviceHpDb) return;
+      await window.serviceHpDb.init(nextData => {
+        applyDataState(nextData, 'remote');
+        hideLoading();
+      }, handleDatabaseStatus);
+      window.serviceHpDb.save(allData, handleDatabaseStatus);
+      hideLoading();
+    }
+
+    function refreshUI() {
+      updateDashboard();
+      updateDaftarServis();
+      updateExpenseList();
+      updateActivityFeed();
+      updateTechnicianDashboard();
+      updateClaimList();
+      updateReports();
+      updateInventoryList();
+      updateCustomerList();
+      if (window.lucide) lucide.createIcons();
+      setupChoicePickers();
+    }
+
+    function showToast(message, type = 'success', title = '') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const styles = {
+        success: {
+          icon: 'check-circle-2',
+          title: title || 'Berhasil',
+          ring: 'border-emerald-500/40',
+          iconBg: 'bg-emerald-500/15 text-emerald-300'
+        },
+        error: {
+          icon: 'x-circle',
+          title: title || 'Gagal',
+          ring: 'border-red-500/40',
+          iconBg: 'bg-red-500/15 text-red-300'
+        },
+        warning: {
+          icon: 'alert-circle',
+          title: title || 'Perhatian',
+          ring: 'border-yellow-500/40',
+          iconBg: 'bg-yellow-500/15 text-yellow-300'
+        },
+        info: {
+          icon: 'info',
+          title: title || 'Info',
+          ring: 'border-cyan-500/40',
+          iconBg: 'bg-cyan-500/15 text-cyan-300'
+        }
+      };
+
+      const tone = styles[type] || styles.info;
+      const toast = document.createElement('div');
+      toast.className = `toast-item pointer-events-auto rounded-xl border ${tone.ring} bg-slate-950/95 p-4 text-white shadow-2xl shadow-slate-950/40 backdrop-blur-xl`;
+      toast.innerHTML = `
+        <div class="flex gap-3">
+          <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${tone.iconBg}">
+            <i data-lucide="${tone.icon}" style="width: 18px; height: 18px;"></i>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold">${tone.title}</p>
+            <p class="mt-1 text-sm leading-5 text-slate-300">${message}</p>
+          </div>
+          <button type="button" class="rounded-md p-1 text-slate-400 hover:bg-white/10 hover:text-white" aria-label="Tutup notifikasi">
+            <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+      `;
+
+      const close = () => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 180);
+      };
+
+      toast.querySelector('button').addEventListener('click', close);
+      container.appendChild(toast);
+      if (window.lucide) lucide.createIcons();
+
+      setTimeout(close, 3600);
+    }
+
+    function logout() {
+      localStorage.removeItem('serviceHpManagerSession');
+      window.location.href = 'login.html';
+    }
+
+    function getDefaultTab() {
+      return currentRole === 'teknisi' ? 'teknisi-dashboard' : 'dashboard';
+    }
+
+    function getTabStorageKey() {
+      return `serviceHpManagerActiveTab:${currentRole}`;
+    }
+
+    function isValidTab(tabName) {
+      if (!tabName) return false;
+      const targetContent = document.getElementById(tabName);
+      const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      return Boolean(targetContent && targetBtn && isRoleAllowed(targetBtn));
+    }
+
+    function getInitialTab() {
+      const hashTab = decodeURIComponent(window.location.hash.replace('#', '')).trim();
+      const savedTab = localStorage.getItem(getTabStorageKey());
+      if (isValidTab(hashTab)) return hashTab;
+      if (isValidTab(savedTab)) return savedTab;
+      return getDefaultTab();
+    }
+
+    function rememberActiveTab(tabName) {
+      localStorage.setItem(getTabStorageKey(), tabName);
+      if (window.location.hash !== `#${tabName}`) {
+        history.replaceState(null, '', `${window.location.pathname}${window.location.search}#${tabName}`);
+      }
+    }
+
+    function switchTab(tabName, shouldRemember = true) {
+      const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      if (!isValidTab(tabName)) {
+        const fallback = getDefaultTab();
+        switchTab(fallback);
+        return;
+      }
+
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+      });
+      document.getElementById(tabName).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+        btn.classList.add('text-slate-300', 'hover:bg-slate-800');
+      });
+
+      const currentBtn = document.querySelector(`[data-tab="${tabName}"]`);
+      currentBtn.classList.add('bg-blue-600', 'text-white', 'hover:bg-blue-700');
+      currentBtn.classList.remove('text-slate-300', 'hover:bg-slate-800');
+
+      if (shouldRemember) rememberActiveTab(tabName);
+    }
+
+    function isRoleAllowed(element) {
+      const roles = element.dataset.roles;
+      if (!roles) return true;
+      return roles.split(',').map(role => role.trim()).includes(currentRole);
+    }
+
+    function setRole(role) {
+      if (role === 'admin') {
+        window.location.href = '../admin/';
+        return;
+      }
+
+      switchTab('teknisi-dashboard');
+    }
+
+    function applyRoleView() {
+      document.querySelectorAll('[data-role-switch]').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.roleSwitch === currentRole);
+      });
+
+      document.querySelectorAll('[data-roles]').forEach(el => {
+        el.classList.toggle('role-hidden', !isRoleAllowed(el));
+      });
+    }
+
+    function formatCurrency(num) {
+      return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+      }).format(Number(num) || 0);
+    }
+
+    function formatCurrencyInput(value) {
+      const digits = String(value ?? '').replace(/\D/g, '');
+      if (!digits) return '';
+      return `Rp ${new Intl.NumberFormat('id-ID').format(Number(digits))}`;
+    }
+
+    function parseCurrencyInput(value) {
+      return parseInt(String(value ?? '').replace(/\D/g, ''), 10) || 0;
+    }
+
+    function bindCurrencyInput(input) {
+      if (!input || input.dataset.currencyBound === 'true') return;
+      input.dataset.currencyBound = 'true';
+
+      input.addEventListener('input', () => {
+        input.value = formatCurrencyInput(input.value);
+      });
+
+      input.addEventListener('blur', () => {
+        input.value = formatCurrencyInput(input.value) || 'Rp 0';
+      });
+
+      input.value = formatCurrencyInput(input.value) || 'Rp 0';
+    }
+
+    function setupCurrencyInputs(scope = document) {
+      scope.querySelectorAll('[data-currency]').forEach(bindCurrencyInput);
+    }
+
+    let activeChoiceSelect = null;
+
+    function getChoiceTitle(select) {
+      const label = select.closest('div')?.querySelector('label')?.textContent?.trim();
+      return label || select.dataset.choiceTitle || 'Pilih Data';
+    }
+
+    function getSelectedOptionLabel(select) {
+      const selected = select.options[select.selectedIndex];
+      return selected?.textContent?.trim() || select.options[0]?.textContent?.trim() || 'Pilih';
+    }
+
+    function setupChoicePickers(scope = document) {
+      scope.querySelectorAll('select').forEach(select => {
+        if (select.dataset.choicePickerSkip === 'true') return;
+
+        if (!select.id) {
+          select.id = `choice-${Math.random().toString(36).slice(2, 9)}`;
+        }
+
+        if (select.dataset.choiceBound === 'true') {
+          updateChoiceButton(select);
+          return;
+        }
+
+        const widthClass = [...select.classList].find(className => className.startsWith('w-')) || '';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.choiceFor = select.id;
+        button.className = `choice-trigger ${widthClass} flex items-center justify-between gap-3 px-3 py-2 text-left text-sm`;
+        button.addEventListener('click', () => openChoicePicker(select.id));
+
+        select.classList.add('native-choice-hidden');
+        select.dataset.choiceBound = 'true';
+        select.insertAdjacentElement('afterend', button);
+        select.addEventListener('change', () => updateChoiceButton(select));
+        updateChoiceButton(select);
+      });
+    }
+
+    function updateChoiceButton(select) {
+      const button = document.querySelector(`[data-choice-for="${select.id}"]`);
+      if (!button) return;
+
+      const selectedLabel = getSelectedOptionLabel(select);
+      const isPlaceholder = !select.value;
+      button.disabled = select.disabled;
+      button.innerHTML = `
+        <span class="min-w-0 flex-1 truncate ${isPlaceholder ? 'text-slate-400' : 'text-white'}">${escapeHtml(selectedLabel)}</span>
+        <i data-lucide="chevron-down" class="flex-shrink-0 text-slate-400" style="width: 16px; height: 16px;"></i>
+      `;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openChoicePicker(selectId) {
+      activeChoiceSelect = document.getElementById(selectId);
+      if (!activeChoiceSelect) return;
+
+      document.getElementById('choicePickerTitle').textContent = getChoiceTitle(activeChoiceSelect);
+      document.getElementById('choicePickerSubtitle').textContent = 'Pilih opsi dari daftar. Gunakan pencarian agar lebih cepat.';
+      document.getElementById('choicePickerSearch').value = '';
+      document.getElementById('choicePickerModal').classList.remove('hidden');
+      document.getElementById('choicePickerModal').classList.add('flex');
+      renderChoicePickerOptions();
+      setTimeout(() => document.getElementById('choicePickerSearch').focus(), 60);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeChoicePicker() {
+      document.getElementById('choicePickerModal').classList.add('hidden');
+      document.getElementById('choicePickerModal').classList.remove('flex');
+      activeChoiceSelect = null;
+    }
+
+    function getChoiceOptions(select) {
+      const seen = new Set();
+      return Array.from(select.options).filter(option => {
+        const key = `${option.value}::${option.textContent.trim()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map(option => ({
+        value: option.value,
+        label: option.textContent.trim(),
+        selected: option.selected
+      }));
+    }
+
+    function renderChoicePickerOptions() {
+      const list = document.getElementById('choicePickerList');
+      if (!activeChoiceSelect) {
+        list.innerHTML = '';
+        return;
+      }
+
+      const query = document.getElementById('choicePickerSearch').value.trim().toLowerCase();
+      const options = getChoiceOptions(activeChoiceSelect).filter(option => option.label.toLowerCase().includes(query));
+
+      if (options.length === 0) {
+        list.innerHTML = '<p class="rounded-lg bg-slate-800 p-4 text-center text-sm text-slate-400">Tidak ada pilihan yang cocok.</p>';
+        return;
+      }
+
+      list.innerHTML = options.map(option => `
+        <button type="button" onclick="selectChoiceValue('${escapeForJs(option.value)}')" class="w-full rounded-xl border ${option.selected ? 'border-cyan-400/70 bg-cyan-500/15' : 'border-slate-700 bg-slate-800'} p-3 text-left hover:border-cyan-500/50 hover:bg-slate-700">
+          <div class="flex items-center justify-between gap-3">
+            <span class="font-semibold ${option.selected ? 'text-cyan-100' : 'text-white'}">${escapeHtml(option.label)}</span>
+            ${option.selected ? '<i data-lucide="check" class="text-cyan-300" style="width: 17px; height: 17px;"></i>' : ''}
+          </div>
+        </button>
+      `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function selectChoiceValue(value) {
+      if (!activeChoiceSelect) return;
+      activeChoiceSelect.value = value;
+      activeChoiceSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      updateChoiceButton(activeChoiceSelect);
+      closeChoicePicker();
+    }
+
+    function openDevicePicker(mode) {
+      devicePickerMode = mode;
+      const brand = document.getElementById('deviceBrand').value;
+      const modal = document.getElementById('devicePickerModal');
+      const title = document.getElementById('devicePickerTitle');
+      const subtitle = document.getElementById('devicePickerSubtitle');
+      const search = document.getElementById('devicePickerSearch');
+
+      title.textContent = mode === 'brand' ? 'Pilih Merek HP' : 'Pilih Model / Tipe HP';
+      subtitle.textContent = mode === 'brand'
+        ? 'Cari brand yang umum dijual atau diservis di Indonesia.'
+        : brand ? `Model untuk ${brand}. Ketik untuk mencari atau gunakan input custom.` : 'Pilih brand dulu atau cari semua model.';
+      search.value = '';
+      search.placeholder = mode === 'brand' ? 'Cari merek, contoh Samsung, OPPO, Xiaomi' : 'Cari model, contoh A15, Reno, Note, iPhone';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      renderDevicePickerOptions();
+      setTimeout(() => search.focus(), 60);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDevicePicker() {
+      const modal = document.getElementById('devicePickerModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function getDevicePickerItems() {
+      if (devicePickerMode === 'brand') {
+        return Object.keys(DEVICE_CATALOG).sort().map(brand => ({ label: brand, sub: `${DEVICE_CATALOG[brand].length} model populer`, value: brand, brand }));
+      }
+
+      const selectedBrand = document.getElementById('deviceBrand').value;
+      const brands = selectedBrand && DEVICE_CATALOG[selectedBrand] ? [selectedBrand] : Object.keys(DEVICE_CATALOG).sort();
+      return brands.flatMap(brand => DEVICE_CATALOG[brand].map(model => ({ label: model, sub: brand, value: model, brand })));
+    }
+
+    function renderDevicePickerOptions() {
+      const list = document.getElementById('devicePickerList');
+      const query = document.getElementById('devicePickerSearch').value.trim().toLowerCase();
+      const items = getDevicePickerItems().filter(item => `${item.label} ${item.sub}`.toLowerCase().includes(query));
+
+      const customButton = query ? `
+        <button type="button" onclick="selectDeviceValue('${escapeForJs(document.getElementById('devicePickerSearch').value.trim())}', '')" class="w-full rounded-xl border border-dashed border-cyan-500/40 bg-cyan-500/10 p-3 text-left hover:bg-cyan-500/15">
+          <div class="font-semibold text-cyan-200">Gunakan "${document.getElementById('devicePickerSearch').value.trim()}"</div>
+          <div class="mt-1 text-xs text-slate-400">Untuk brand/model yang belum ada di daftar lokal.</div>
+        </button>
+      ` : '';
+
+      list.innerHTML = customButton + (items.length === 0 ? '<p class="rounded-lg bg-slate-800 p-4 text-center text-sm text-slate-400">Tidak ada hasil. Gunakan teks pencarian sebagai custom.</p>' : items.map(item => `
+        <button type="button" onclick="selectDeviceValue('${escapeForJs(item.value)}', '${escapeForJs(item.brand)}')" class="w-full rounded-xl border border-slate-700 bg-slate-800 p-3 text-left hover:border-cyan-500/40 hover:bg-slate-700">
+          <div class="font-semibold text-white">${item.label}</div>
+          <div class="mt-1 text-xs text-slate-400">${item.sub}</div>
+        </button>
+      `).join(''));
+    }
+
+    function selectDeviceValue(value, brand) {
+      if (!value) return;
+
+      if (devicePickerMode === 'brand') {
+        document.getElementById('deviceBrand').value = value;
+        document.getElementById('deviceBrandButton').textContent = value;
+        document.getElementById('deviceModel').value = '';
+        document.getElementById('deviceModelButton').textContent = 'Pilih model / tipe';
+      } else {
+        if (brand && !document.getElementById('deviceBrand').value) {
+          document.getElementById('deviceBrand').value = brand;
+          document.getElementById('deviceBrandButton').textContent = brand;
+        }
+        document.getElementById('deviceModel').value = value;
+        document.getElementById('deviceModelButton').textContent = value;
+      }
+
+      closeDevicePicker();
+    }
+
+    function escapeForJs(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, ' ');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[char]));
+    }
+
+    function populateDamageTypes() {
+      const select = document.getElementById('damageType');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">Pilih jenis kerusakan</option>' + getDamageTypes().map(item => `
+        <option value="${item.id}">${item.name} - ${formatCurrency(item.price)}</option>
+      `).join('');
+
+      updateDamagePreview();
+      setupChoicePickers(select.parentElement);
+    }
+
+    function getDamageTypes() {
+      return [
+        ...DAMAGE_TYPES.map(item => ({ ...item, source: 'default' })),
+        ...allData.damageTypes.map(item => ({ ...item, source: 'custom' }))
+      ];
+    }
+
+    function getSelectedDamageType() {
+      const selectedId = document.getElementById('damageType')?.value;
+      return getDamageTypes().find(item => item.id === selectedId) || null;
+    }
+
+    function updateDamagePreview() {
+      const damage = getSelectedDamageType();
+      const preview = document.getElementById('damagePreview');
+      if (!preview) return;
+
+      if (!damage) {
+        preview.innerHTML = `
+          <div class="sm:col-span-3 rounded-lg border border-slate-700 bg-slate-900/60 p-4 text-sm text-slate-400">
+            Pilih kerusakan untuk melihat biaya penanganan, estimasi selesai, dan garansi otomatis.
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById('warrantyCoverage').value = damage.coverage;
+      document.getElementById('warrantyExclusion').value = damage.exclusion;
+
+      preview.innerHTML = `
+        <div class="rounded-lg border border-cyan-500/25 bg-cyan-500/10 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-cyan-300">Biaya Penanganan</p>
+          <p class="mt-2 text-xl font-bold text-white">${formatCurrency(damage.price)}</p>
+        </div>
+        <div class="rounded-lg border border-blue-500/25 bg-blue-500/10 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-blue-300">Estimasi Selesai</p>
+          <p class="mt-2 text-xl font-bold text-white">${damage.estimatedDays} hari</p>
+        </div>
+        <div class="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-emerald-300">Garansi</p>
+          <p class="mt-2 text-xl font-bold text-white">${damage.warrantyDays > 0 ? `${damage.warrantyDays} hari` : 'Tidak ada'}</p>
+        </div>
+      `;
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(date));
+    }
+
+    function generateTransactionNo() {
+      const year = new Date().getFullYear();
+      const id = String(allData.nextServiceId).padStart(5, '0');
+      return `SRV-${year}-${id}`;
+    }
+
+    function getServiceIncome(service) {
+      return (service.downPayment || 0) + (service.payment?.amount || 0);
+    }
+
+    function getServiceDiscount(service) {
+      return Math.min(service.discount?.amount || 0, service.cost?.estimated || 0);
+    }
+
+    function getServiceNetTotal(service) {
+      return Math.max((service.cost?.estimated || 0) - getServiceDiscount(service), 0);
+    }
+
+    function getServicePaidTotal(service) {
+      return (service.downPayment || 0) + (service.payment?.amount || 0);
+    }
+
+    function getServiceRemaining(service) {
+      return Math.max(getServiceNetTotal(service) - getServicePaidTotal(service), 0);
+    }
+
+    function calculateDiscountAmount(total, type, value) {
+      const rawValue = Number(value) || 0;
+      const amount = type === 'percent' ? Math.round(total * Math.min(rawValue, 100) / 100) : rawValue;
+      return Math.min(Math.max(amount, 0), total);
+    }
+
+    function updateDashboard() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayServices = allData.services.filter(s => {
+        const serviceDate = new Date(s.createdAt);
+        serviceDate.setHours(0, 0, 0, 0);
+        return serviceDate.getTime() === today.getTime();
+      });
+
+      const dailyIncome = todayServices.reduce((sum, service) => sum + getServiceIncome(service), 0);
+
+      const todayExpenses = allData.expenses.filter(e => {
+        const expenseDate = new Date(e.createdAt);
+        expenseDate.setHours(0, 0, 0, 0);
+        return expenseDate.getTime() === today.getTime();
+      });
+
+      const dailyExpense = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+      const dailyNetIncome = dailyIncome - dailyExpense;
+      const processingCount = allData.services.filter(s => s.status === 'sedang dikerjakan').length;
+      const activeWarranties = allData.services.filter(s => {
+        if (!s.warranty || s.warranty.days === 0 || !s.warranty.endDate) return false;
+        const endDate = new Date(s.warranty.endDate);
+        return endDate > new Date();
+      }).length;
+
+      document.getElementById('currentDate').textContent = formatDate(new Date());
+      document.getElementById('dailyIncome').textContent = formatCurrency(dailyNetIncome);
+      document.getElementById('dailyExpense').textContent = formatCurrency(dailyExpense);
+      document.getElementById('processingCount').textContent = processingCount;
+      document.getElementById('activeWarrantyCount').textContent = activeWarranties;
+    }
+
+    function updateDaftarServis() {
+      const table = document.getElementById('daftarServisTable');
+      const services = getFilteredServices();
+
+      if (services.length === 0) {
+        table.innerHTML = '<tr class="hover:bg-slate-800 transition-colors"><td colspan="7" class="py-8 px-4 text-center text-slate-400">Belum ada data servis</td></tr>';
+        return;
+      }
+
+      table.innerHTML = services.map(service => `
+        <tr class="service-row border-b border-slate-800/80 transition-colors">
+          <td class="py-4 px-4">
+            <div class="font-semibold text-blue-300">${service.id}</div>
+            <div class="text-xs text-slate-500">${new Date(service.createdAt).toLocaleDateString('id-ID')}</div>
+          </td>
+          <td class="py-4 px-4">
+            <div class="font-semibold text-slate-100">${service.customer.name}</div>
+            <div class="text-xs text-slate-500">${service.customer.phone}</div>
+          </td>
+          <td class="py-4 px-4">
+            <div class="text-sm font-semibold text-slate-200">${service.device.brand} ${service.device.model}</div>
+            <div class="text-xs text-slate-500">${service.device.imei || 'IMEI belum diisi'}</div>
+          </td>
+          <td class="py-3 px-4">
+            ${renderStatusBadge(service.status)}
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-3 py-1 rounded-full text-xs font-medium ${getPaymentBadgeClass(getPaymentStatus(service))}">
+              ${getPaymentStatus(service)}
+            </span>
+          </td>
+          <td class="py-4 px-4">
+            <div class="font-semibold text-slate-100">${formatCurrency(service.cost.estimated)}</div>
+            <div class="text-xs text-slate-500">DP ${formatCurrency(service.downPayment)}</div>
+          </td>
+          <td class="py-4 px-4 min-w-[24rem]">
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="showServiceDetail('${service.id}')" class="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold transition-all">
+                <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Detail
+              </button>
+              ${renderStatusActions(service)}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function getFilteredServices() {
+      const search = (document.getElementById('serviceSearch')?.value || '').trim().toUpperCase();
+      const status = document.getElementById('serviceStatusFilter')?.value || '';
+      const paymentStatus = document.getElementById('paymentStatusFilter')?.value || '';
+
+      return allData.services.filter(service => {
+        const haystack = [
+          service.id,
+          service.customer.name,
+          service.customer.phone,
+          service.device.brand,
+          service.device.model,
+          service.device.imei,
+          service.complaint
+        ].join(' ').toUpperCase();
+
+        const matchesSearch = !search || haystack.includes(search);
+        const matchesStatus = !status || service.status === status;
+        const matchesPayment = !paymentStatus || getPaymentStatus(service) === paymentStatus;
+
+        return matchesSearch && matchesStatus && matchesPayment;
+      });
+    }
+
+    function getStatusBadgeClass(status) {
+      const classes = {
+        'diterima': 'bg-blue-900 text-blue-200',
+        'dicek': 'bg-yellow-900 text-yellow-200',
+        'menunggu persetujuan': 'bg-cyan-900 text-cyan-200',
+        'sedang dikerjakan': 'bg-orange-900 text-orange-200',
+        'selesai': 'bg-green-900 text-green-200',
+        'sudah diambil': 'bg-purple-900 text-purple-200',
+        'batal': 'bg-red-900 text-red-200'
+      };
+      return classes[status] || 'bg-slate-700 text-slate-200';
+    }
+
+    function getStatusDotClass(status) {
+      const classes = {
+        'diterima': 'bg-blue-400',
+        'dicek': 'bg-yellow-400',
+        'menunggu persetujuan': 'bg-cyan-400',
+        'sedang dikerjakan': 'bg-orange-400',
+        'selesai': 'bg-green-400',
+        'sudah diambil': 'bg-purple-400',
+        'batal': 'bg-red-400'
+      };
+      return classes[status] || 'bg-slate-400';
+    }
+
+    function renderStatusBadge(status) {
+      return `
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(status)}">
+          <span class="status-dot ${getStatusDotClass(status)}"></span>
+          ${status}
+        </span>
+      `;
+    }
+
+    function getStatusFlow() {
+      return [
+        { value: 'diterima', label: 'Diterima', icon: 'inbox' },
+        { value: 'dicek', label: 'Dicek', icon: 'search-check' },
+        { value: 'menunggu persetujuan', label: 'Approval', icon: 'hourglass' },
+        { value: 'sedang dikerjakan', label: 'Kerjakan', icon: 'wrench' },
+        { value: 'selesai', label: 'Selesai', icon: 'check-circle-2' },
+        { value: 'sudah diambil', label: 'Diambil', icon: 'package-check' }
+      ];
+    }
+
+    function renderStatusActions(service) {
+      const flow = getStatusFlow();
+      const currentIndex = flow.findIndex(step => step.value === service.status);
+      const visibleSteps = flow.filter((step, index) => {
+        if (service.status === 'batal') return false;
+        if (currentIndex < 0) return index <= 1;
+        return index > currentIndex && index <= currentIndex + 2;
+      });
+
+      const actions = visibleSteps.map((step, index) => `
+        <button onclick="updateServiceStatus('${service.id}', '${step.value}')" class="status-action ${index === 0 ? 'is-next' : ''}" title="Ubah status ke ${step.label}">
+          <i data-lucide="${step.icon}" style="width: 13px; height: 13px;"></i>${step.label}
+        </button>
+      `).join('');
+
+      const cancelAction = service.status !== 'batal' && service.status !== 'sudah diambil'
+        ? `<button onclick="updateServiceStatus('${service.id}', 'batal')" class="status-action text-red-200 hover:text-red-100" title="Batalkan servis"><i data-lucide="x-circle" style="width: 13px; height: 13px;"></i>Batal</button>`
+        : '';
+
+      return actions + cancelAction;
+    }
+
+    function getPaymentStatus(service) {
+      const totalPaid = getServicePaidTotal(service);
+      if (totalPaid <= 0) return 'belum bayar';
+      if (totalPaid >= getServiceNetTotal(service)) return 'lunas';
+      return 'dp';
+    }
+
+    function getPaymentBadgeClass(status) {
+      const classes = {
+        'belum bayar': 'bg-red-900 text-red-200',
+        'dp': 'bg-yellow-900 text-yellow-200',
+        'lunas': 'bg-green-900 text-green-200'
+      };
+      return classes[status] || 'bg-slate-700 text-slate-200';
+    }
+
+    function showServiceDetail(serviceId) {
+      const service = allData.services.find(s => s.id === serviceId);
+      const panel = document.getElementById('serviceDetailPanel');
+      if (!service || !panel) return;
+
+      const paid = service.payment ? service.payment.amount : 0;
+      const discount = getServiceDiscount(service);
+      const remaining = getServiceRemaining(service);
+      const warranty = getWarrantyInfo(service);
+
+      panel.classList.remove('hidden');
+      panel.innerHTML = `
+        <div class="soft-card">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-xl font-bold text-white">${service.id}</h3>
+            <p class="text-sm text-slate-400">${service.customer.name} - ${service.customer.phone}</p>
+          </div>
+          <button onclick="document.getElementById('serviceDetailPanel').classList.add('hidden')" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1 rounded text-xs">Tutup</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <p class="text-xs text-cyan-400 font-semibold mb-2">DEVICE</p>
+            <p class="text-white font-semibold">${service.device.brand} ${service.device.model}</p>
+            <p class="text-slate-400">IMEI: ${service.device.imei || '-'}</p>
+            <p class="text-slate-400">Warna: ${service.device.color || '-'}</p>
+          </div>
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <p class="text-xs text-cyan-400 font-semibold mb-2">SERVIS</p>
+            <p class="text-white font-semibold">${service.repairType?.name || 'Kerusakan manual'}</p>
+            <p class="text-slate-300">${service.complaint}</p>
+            <p class="text-slate-400 mt-2">Teknisi: ${service.technician || '-'}</p>
+            <p class="text-slate-400">Estimasi selesai: ${service.estimatedDays || 1} hari</p>
+            <p class="text-slate-400">Status: ${service.status}</p>
+          </div>
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <p class="text-xs text-cyan-400 font-semibold mb-2">BIAYA</p>
+            <p class="text-slate-300">Total: ${formatCurrency(service.cost.estimated)}</p>
+            <p class="text-slate-300">Diskon: ${formatCurrency(discount)}</p>
+            <p class="text-slate-300">DP: ${formatCurrency(service.downPayment)}</p>
+            <p class="text-yellow-400 font-bold">Sisa: ${formatCurrency(remaining)}</p>
+          </div>
+        </div>
+        <div class="mt-4 bg-slate-800 rounded-lg p-4 border border-slate-700 text-sm">
+          <p class="text-xs text-cyan-400 font-semibold mb-2">GARANSI</p>
+          <p class="text-white font-semibold">${warranty.label}</p>
+          <p class="text-slate-400">Cakupan: ${service.warranty?.coverage || '-'}</p>
+          <p class="text-slate-400">Pengecualian: ${service.warranty?.exclusion || '-'}</p>
+        </div>
+        </div>
+      `;
+    }
+
+    function updateServiceStatus(serviceId, newStatus) {
+      if (!newStatus) return;
+
+      const service = allData.services.find(s => s.id === serviceId);
+      if (!service) return;
+
+      service.status = newStatus;
+
+      if ((newStatus === 'selesai' || newStatus === 'sudah diambil') && service.warranty && service.warranty.days > 0 && !service.warranty.endDate) {
+        service.warranty.startDate = new Date().toISOString();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + service.warranty.days);
+        service.warranty.endDate = endDate.toISOString();
+        service.warranty.status = 'aktif';
+      }
+
+      saveData();
+      refreshUI();
+      showToast(`${service.id} sekarang berstatus ${newStatus}.`, 'success', 'Status Diperbarui');
+    }
+
+    function updateExpenseList() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const todayExpenses = allData.expenses.filter(e => {
+        const expenseDate = new Date(e.createdAt);
+        expenseDate.setHours(0, 0, 0, 0);
+        return expenseDate.getTime() === today.getTime();
+      });
+
+      const expenseList = document.getElementById('expenseList');
+      if (todayExpenses.length === 0) {
+        expenseList.innerHTML = '<p class="text-slate-400 text-center py-4">Belum ada pengeluaran</p>';
+        return;
+      }
+
+      expenseList.innerHTML = todayExpenses.map(expense => `
+        <div class="bg-slate-800 rounded-lg p-4 border-l-4 border-orange-500">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-semibold text-white capitalize">${expense.category}</p>
+            <p class="text-orange-400 font-bold">${formatCurrency(expense.amount)}</p>
+          </div>
+          <p class="text-xs text-slate-400">${expense.description || '-'}</p>
+          <p class="text-xs text-slate-500 mt-2">${formatDate(expense.createdAt)}</p>
+        </div>
+      `).join('');
+    }
+
+    function updateActivityFeed() {
+      const feed = document.getElementById('activityFeed');
+      const recentActivities = [];
+
+      allData.services.slice(-5).reverse().forEach(service => {
+        recentActivities.push({
+          type: 'service',
+          message: `${service.customer.name} - ${service.device.brand} ${service.device.model} (${service.status})`,
+          time: service.createdAt
+        });
+      });
+
+      allData.expenses.slice(-3).reverse().forEach(expense => {
+        recentActivities.push({
+          type: 'expense',
+          message: `Pengeluaran: ${expense.category} (${formatCurrency(expense.amount)})`,
+          time: expense.createdAt
+        });
+      });
+
+      recentActivities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+      if (recentActivities.length === 0) {
+        feed.innerHTML = '<p class="text-slate-400 text-sm">Belum ada aktivitas</p>';
+        return;
+      }
+
+      feed.innerHTML = recentActivities.slice(0, 8).map(activity => `
+        <div class="flex gap-3">
+          <div class="flex-shrink-0 w-2 h-2 rounded-full mt-2 ${activity.type === 'service' ? 'bg-blue-500' : 'bg-orange-500'}"></div>
+          <div class="flex-1">
+            <p class="text-sm text-slate-300">${activity.message}</p>
+            <p class="text-xs text-slate-500">${new Date(activity.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateTechnicianDashboard() {
+      const queue = document.getElementById('technicianQueue');
+      if (!queue) return;
+
+      const workStatuses = ['diterima', 'dicek', 'menunggu persetujuan', 'sedang dikerjakan', 'selesai'];
+      const received = allData.services.filter(s => s.status === 'diterima').length;
+      const checked = allData.services.filter(s => s.status === 'dicek' || s.status === 'menunggu persetujuan').length;
+      const working = allData.services.filter(s => s.status === 'sedang dikerjakan').length;
+      const done = allData.services.filter(s => s.status === 'selesai').length;
+
+      document.getElementById('techReceivedCount').textContent = received;
+      document.getElementById('techCheckCount').textContent = checked;
+      document.getElementById('techWorkingCount').textContent = working;
+      document.getElementById('techDoneCount').textContent = done;
+
+      const filter = document.getElementById('technicianQueueFilter')?.value || '';
+      const jobs = allData.services
+        .filter(service => workStatuses.includes(service.status))
+        .filter(service => !filter || service.status === filter)
+        .slice()
+        .reverse();
+
+      if (jobs.length === 0) {
+        queue.innerHTML = '<p class="text-slate-400 text-center py-4">Belum ada pekerjaan teknisi</p>';
+      } else {
+        queue.innerHTML = jobs.map(service => `
+          <div class="soft-card bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-blue-400 font-semibold">${service.id}</p>
+                <p class="text-white font-semibold">${service.device.brand} ${service.device.model}</p>
+                <p class="text-sm text-slate-400">${service.customer.name} | ${service.customer.phone}</p>
+              </div>
+              ${renderStatusBadge(service.status)}
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4 text-sm">
+              <div class="bg-slate-900 rounded-lg p-3">
+                <p class="text-xs font-semibold text-cyan-400 mb-1">Keluhan</p>
+                <p class="text-slate-300">${service.complaint}</p>
+              </div>
+              <div class="bg-slate-900 rounded-lg p-3">
+                <p class="text-xs font-semibold text-cyan-400 mb-1">Pengecekan Awal</p>
+                <p class="text-slate-300">${service.initialCheck || '-'}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 mt-4">
+              <button onclick="showServiceDetail('${service.id}'); switchTab('daftar-servis')" class="inline-flex items-center gap-1.5 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold">
+                <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Detail
+              </button>
+              ${renderStatusActions(service)}
+            </div>
+          </div>
+        `).join('');
+        if (window.lucide) lucide.createIcons();
+      }
+
+      const claimQueue = document.getElementById('technicianClaimQueue');
+      if (!claimQueue) return;
+
+      const activeClaims = allData.warrantyClaims
+        .filter(claim => claim.status !== 'selesai' && claim.status !== 'ditolak')
+        .slice()
+        .reverse();
+
+      claimQueue.innerHTML = activeClaims.length === 0
+        ? '<p class="text-slate-400 text-center py-4">Belum ada klaim aktif</p>'
+        : activeClaims.map(claim => `
+          <div class="soft-card bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <p class="text-blue-400 font-semibold">${claim.id}</p>
+            <p class="text-sm text-white">${claim.device}</p>
+            <p class="text-xs text-slate-400">${claim.customerName} | ${claim.serviceId}</p>
+            <p class="text-sm text-slate-300 mt-3">${claim.complaint}</p>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <button onclick="updateClaimStatus('${claim.id}', 'dicek')" class="bg-yellow-700 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs">Dicek</button>
+              <button onclick="updateClaimStatus('${claim.id}', 'diterima')" class="bg-blue-700 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs">Terima</button>
+              <button onclick="updateClaimStatus('${claim.id}', 'ditolak')" class="bg-red-700 hover:bg-red-600 text-white px-3 py-1 rounded text-xs">Tolak</button>
+              <button onclick="updateClaimStatus('${claim.id}', 'selesai')" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs">Selesai</button>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    document.getElementById('formServisBaru').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const transactionNo = generateTransactionNo();
+      const submitBtn = document.getElementById('submitServisBaru');
+      const selectedDamage = getSelectedDamageType();
+
+      if (!selectedDamage) {
+        showToast('Pilih daftar kerusakan dulu sebelum menyimpan transaksi.', 'warning', 'Kerusakan Belum Dipilih');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
+      const serviceData = {
+        id: transactionNo,
+        customer: {
+          name: document.getElementById('customerName').value,
+          phone: document.getElementById('customerPhone').value,
+          address: document.getElementById('customerAddress').value
+        },
+        device: {
+          brand: document.getElementById('deviceBrand').value,
+          model: document.getElementById('deviceModel').value,
+          imei: document.getElementById('deviceIMEI').value,
+          color: document.getElementById('deviceColor').value
+        },
+        complaint: document.getElementById('complaint').value,
+        initialCheck: document.getElementById('initialCheck').value,
+        repairType: {
+          id: selectedDamage.id,
+          name: selectedDamage.name
+        },
+        cost: {
+          estimated: selectedDamage.price,
+          actual: 0
+        },
+        downPayment: parseCurrencyInput(document.getElementById('downPayment').value),
+        technician: document.getElementById('technician').value,
+        estimatedDays: selectedDamage.estimatedDays,
+        status: 'diterima',
+        warranty: {
+          days: selectedDamage.warrantyDays,
+          startDate: null,
+          endDate: null,
+          status: 'pending',
+          coverage: document.getElementById('warrantyCoverage').value || selectedDamage.coverage,
+          exclusion: document.getElementById('warrantyExclusion').value || selectedDamage.exclusion
+        },
+        notes: document.getElementById('notes').value,
+        createdAt: new Date().toISOString(),
+        payment: null
+      };
+
+      allData.services.push(serviceData);
+      allData.nextServiceId += 1;
+      saveData();
+
+      document.getElementById('formServisBaru').reset();
+      document.getElementById('deviceBrandButton').textContent = 'Pilih merek HP';
+      document.getElementById('deviceModelButton').textContent = 'Pilih model / tipe';
+      updateDamagePreview();
+      setupCurrencyInputs(document.getElementById('formServisBaru'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Simpan Transaksi Servis';
+      refreshUI();
+
+      setTimeout(() => {
+        showToast(`Transaksi berhasil dibuat. No: ${transactionNo}`, 'success', 'Servis Tersimpan');
+        switchTab('daftar-servis');
+      }, 150);
+    });
+
+    function searchTransaction() {
+      const searchNo = document.getElementById('searchTransactionNo').value.trim().toUpperCase();
+      if (!searchNo) {
+        document.getElementById('paymentDetail').innerHTML = '<p class="text-slate-400 text-center py-8">Cari transaksi untuk melihat detail pembayaran</p>';
+        return;
+      }
+
+      const service = allData.services.find(s => s.id === searchNo);
+      if (!service) {
+        document.getElementById('paymentDetail').innerHTML = '<div class="bg-red-900 border border-red-700 rounded-lg p-4"><p class="text-red-200">Transaksi tidak ditemukan</p></div>';
+        return;
+      }
+
+      const paid = service.payment ? service.payment.amount : 0;
+      const discount = getServiceDiscount(service);
+      const sisa = getServiceRemaining(service);
+      document.getElementById('paymentDetail').innerHTML = `
+        <div class="soft-card space-y-4">
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h4 class="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-3">Data Transaksi</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-4"><span class="text-slate-400">No Transaksi:</span><span class="text-white font-semibold">${service.id}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Pelanggan:</span><span class="text-white">${service.customer.name}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Device:</span><span class="text-white">${service.device.brand} ${service.device.model}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Status:</span><span class="text-white font-semibold capitalize">${service.status}</span></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h4 class="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-3">Rincian Biaya</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Kerusakan:</span><span class="text-white">${service.repairType?.name || '-'}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Biaya Penanganan:</span><span class="text-white">${formatCurrency(service.cost.estimated)}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Diskon:</span><span id="paymentDiscountPreview" class="text-cyan-300 font-semibold">${formatCurrency(discount)}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Total Setelah Diskon:</span><span id="paymentNetTotalPreview" class="text-white font-semibold">${formatCurrency(getServiceNetTotal(service))}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">DP / Uang Muka:</span><span class="text-green-400 font-semibold">${formatCurrency(service.downPayment)}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Sudah Dibayar:</span><span class="text-green-400 font-semibold">${formatCurrency(paid)}</span></div>
+              <div class="border-t border-slate-600 pt-2 mt-2 flex justify-between gap-4">
+                <span class="text-slate-300 font-semibold">Sisa Pembayaran:</span>
+                <span id="paymentRemainingPreview" class="text-yellow-400 font-bold text-lg">${formatCurrency(sisa)}</span>
+              </div>
+            </div>
+          </div>
+
+          ${sisa <= 0 ? `
+          <div class="bg-emerald-950/60 rounded-lg p-4 border border-emerald-700/70">
+            <div class="flex items-start gap-3">
+              <div class="h-9 w-9 rounded-full bg-emerald-500/20 text-emerald-200 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+              </div>
+              <div>
+                <h4 class="text-emerald-100 font-semibold">Tagihan Sudah Lunas</h4>
+                <p class="text-sm text-emerald-200/80 mt-1">Transaksi ini sudah dibayar sesuai tagihan, jadi pembayaran tambahan dikunci.</p>
+              </div>
+            </div>
+          </div>
+          ` : `
+          <form onsubmit="processPayment(event, '${service.id}')" class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h4 class="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-3">Terima Pembayaran</h4>
+            <div class="space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Tipe Diskon</label>
+                  <select id="discountType" onchange="updatePaymentDiscountPreview('${service.id}')" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                    <option value="nominal" ${service.discount?.type !== 'percent' ? 'selected' : ''}>Nominal</option>
+                    <option value="percent" ${service.discount?.type === 'percent' ? 'selected' : ''}>Persen</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-300 mb-1">Nilai Diskon</label>
+                  <input type="text" inputmode="numeric" id="discountValue" value="${service.discount?.type === 'percent' ? (service.discount.value || 0) : formatCurrencyInput(discount)}" ${service.discount?.type === 'percent' ? '' : 'data-currency'} oninput="updatePaymentDiscountPreview('${service.id}')" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Jumlah Pembayaran</label>
+                <input type="text" inputmode="numeric" id="paymentAmount" value="${formatCurrencyInput(sisa)}" data-currency required class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Metode Pembayaran</label>
+                <select id="paymentMethod" class="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+                  <option value="tunai">Tunai</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="qris">QRIS</option>
+                  <option value="ewallet">E-Wallet</option>
+                </select>
+              </div>
+              <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-2 rounded-lg transition-all font-semibold">
+                Terima Pembayaran
+              </button>
+            </div>
+          </form>
+          `}
+        </div>
+      `;
+      lucide.createIcons();
+      if (sisa > 0) {
+        setupCurrencyInputs(document.getElementById('paymentDetail'));
+        setupChoicePickers(document.getElementById('paymentDetail'));
+        updatePaymentDiscountPreview(service.id);
+      }
+    }
+
+    function updatePaymentDiscountPreview(serviceId) {
+      const service = allData.services.find(s => s.id === serviceId);
+      if (!service) return;
+
+      const type = document.getElementById('discountType')?.value || 'nominal';
+      const discountInput = document.getElementById('discountValue');
+      if (!discountInput) return;
+
+      if (type === 'percent') {
+        discountInput.removeAttribute('data-currency');
+        discountInput.value = String(discountInput.value).replace(/\D/g, '').slice(0, 3);
+      } else {
+        discountInput.setAttribute('data-currency', '');
+        bindCurrencyInput(discountInput);
+      }
+
+      const value = type === 'percent' ? parseInt(discountInput.value, 10) || 0 : parseCurrencyInput(discountInput.value);
+      const discountAmount = calculateDiscountAmount(service.cost.estimated, type, value);
+      const netTotal = Math.max(service.cost.estimated - discountAmount, 0);
+      const remaining = Math.max(netTotal - getServicePaidTotal(service), 0);
+
+      document.getElementById('paymentDiscountPreview').textContent = formatCurrency(discountAmount);
+      document.getElementById('paymentNetTotalPreview').textContent = formatCurrency(netTotal);
+      document.getElementById('paymentRemainingPreview').textContent = formatCurrency(remaining);
+      document.getElementById('paymentAmount').value = formatCurrencyInput(remaining);
+    }
+
+    function processPayment(event, serviceId) {
+      event.preventDefault();
+
+      const service = allData.services.find(s => s.id === serviceId);
+      if (!service) return;
+
+      const amount = parseCurrencyInput(document.getElementById('paymentAmount').value);
+      const method = document.getElementById('paymentMethod').value;
+      const previousAmount = service.payment ? service.payment.amount : 0;
+      const discountType = document.getElementById('discountType').value;
+      const discountValue = discountType === 'percent'
+        ? parseInt(document.getElementById('discountValue').value, 10) || 0
+        : parseCurrencyInput(document.getElementById('discountValue').value);
+      const discountAmount = calculateDiscountAmount(service.cost.estimated, discountType, discountValue);
+      const netTotal = Math.max(service.cost.estimated - discountAmount, 0);
+      const paidBeforePayment = getServicePaidTotal(service);
+      const remainingBeforePayment = Math.max(netTotal - paidBeforePayment, 0);
+
+      if (remainingBeforePayment <= 0) {
+        showToast('Transaksi ini sudah lunas, pembayaran tambahan tidak bisa diproses.', 'warning', 'Sudah Lunas');
+        searchTransaction();
+        return;
+      }
+
+      if (amount <= 0) {
+        showToast('Jumlah pembayaran harus lebih dari Rp 0.', 'warning', 'Nominal Tidak Valid');
+        return;
+      }
+
+      if (amount > remainingBeforePayment) {
+        document.getElementById('paymentAmount').value = formatCurrencyInput(remainingBeforePayment);
+        showToast(`Nominal pembayaran melebihi sisa tagihan. Maksimal ${formatCurrency(remainingBeforePayment)}.`, 'warning', 'Melebihi Tagihan');
+        return;
+      }
+
+      service.discount = {
+        type: discountType,
+        value: discountValue,
+        amount: discountAmount,
+        date: new Date().toISOString()
+      };
+
+      service.payment = {
+        amount: previousAmount + amount,
+        method: method,
+        date: new Date().toISOString()
+      };
+
+      const sisa = getServiceRemaining(service);
+      if (sisa <= 0) {
+        service.status = 'sudah diambil';
+        if (service.warranty && service.warranty.days > 0 && !service.warranty.endDate) {
+          service.warranty.startDate = new Date().toISOString();
+          const endDate = new Date();
+          endDate.setDate(endDate.getDate() + service.warranty.days);
+          service.warranty.endDate = endDate.toISOString();
+          service.warranty.status = 'aktif';
+        }
+      }
+
+      saveData();
+      refreshUI();
+      showToast('Pembayaran berhasil diterima dan data kasir sudah diperbarui.', 'success', 'Pembayaran Masuk');
+      document.getElementById('searchTransactionNo').value = '';
+      document.getElementById('paymentDetail').innerHTML = '<p class="text-slate-400 text-center py-8">Cari transaksi untuk melihat detail pembayaran</p>';
+    }
+
+    function searchWarranty() {
+      const searchType = document.getElementById('warrantySearchType').value;
+      const searchQuery = document.getElementById('warrantySearchQuery').value.trim().toUpperCase();
+
+      if (!searchQuery) {
+        document.getElementById('warrantyResult').innerHTML = '<p class="text-slate-400 text-center py-8">Masukkan data untuk cek status garansi</p>';
+        return;
+      }
+
+      let service = null;
+
+      if (searchType === 'transactionNo') {
+        service = allData.services.find(s => s.id === searchQuery);
+      } else if (searchType === 'phone') {
+        service = allData.services.find(s => s.customer.phone.toUpperCase().includes(searchQuery));
+      } else if (searchType === 'imei') {
+        service = allData.services.find(s => (s.device.imei || '').toUpperCase().includes(searchQuery));
+      }
+
+      if (!service) {
+        document.getElementById('warrantyResult').innerHTML = '<div class="bg-red-900 border border-red-700 rounded-lg p-4"><p class="text-red-200">Garansi tidak ditemukan</p></div>';
+        return;
+      }
+
+      const warrantyInfo = getWarrantyInfo(service);
+
+      document.getElementById('warrantyResult').innerHTML = `
+        <div class="soft-card space-y-4">
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h4 class="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-3">Data Pelanggan</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Nama:</span><span class="text-white font-semibold">${service.customer.name}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">No HP:</span><span class="text-white">${service.customer.phone}</span></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <h4 class="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-3">Detail Garansi</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-4"><span class="text-slate-400">No Transaksi:</span><span class="text-blue-400 font-semibold">${service.id}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Device:</span><span class="text-white">${service.device.brand} ${service.device.model}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Perbaikan:</span><span class="text-white">${service.complaint}</span></div>
+              <div class="flex justify-between gap-4"><span class="text-slate-400">Tanggal Masuk:</span><span class="text-white">${new Date(service.createdAt).toLocaleDateString('id-ID')}</span></div>
+            </div>
+          </div>
+
+          <div class="${warrantyInfo.bg} rounded-lg p-4 border border-opacity-50 border-white">
+            <p class="text-xs font-semibold uppercase tracking-wider text-white mb-2">Status Garansi</p>
+            <p class="text-2xl font-bold text-white">${warrantyInfo.label}</p>
+            ${warrantyInfo.detail ? `<p class="text-xs text-white mt-2">${warrantyInfo.detail}</p>` : ''}
+            <div class="mt-3 text-xs text-white/90 space-y-1">
+              <p>Cakupan: ${service.warranty?.coverage || '-'}</p>
+              <p>Pengecualian: ${service.warranty?.exclusion || '-'}</p>
+            </div>
+            ${warrantyInfo.active ? `<button onclick="switchTab('klaim-garansi'); document.getElementById('claimTransactionNo').value='${service.id}'" class="mt-4 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded text-sm transition-all">Buat Klaim Garansi</button>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function getWarrantyInfo(service) {
+      const warranty = service.warranty;
+      if (!warranty || warranty.days <= 0) {
+        return { label: 'Tidak Ada Garansi', bg: 'bg-slate-700', detail: '', active: false };
+      }
+
+      if (!warranty.endDate) {
+        return {
+          label: 'Belum Aktif',
+          bg: 'bg-yellow-600',
+          detail: 'Garansi aktif setelah status servis dibuat selesai atau sudah diambil.',
+          active: false
+        };
+      }
+
+      const today = new Date();
+      const endDate = new Date(warranty.endDate);
+      const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+      if (daysLeft > 0) {
+        return {
+          label: `Masih Aktif (${daysLeft} hari lagi)`,
+          bg: 'bg-green-600',
+          detail: `Berlaku hingga: ${endDate.toLocaleDateString('id-ID')}`,
+          active: true
+        };
+      }
+
+      return {
+        label: 'Sudah Habis',
+        bg: 'bg-red-600',
+        detail: `Berakhir pada: ${endDate.toLocaleDateString('id-ID')}`,
+        active: false
+      };
+    }
+
+    document.getElementById('formPengeluaran').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const submitBtn = document.getElementById('submitExpense');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
+
+      const expenseData = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        category: document.getElementById('expenseCategory').value,
+        amount: parseCurrencyInput(document.getElementById('expenseAmount').value),
+        description: document.getElementById('expenseDesc').value,
+        createdAt: new Date().toISOString()
+      };
+
+      allData.expenses.push(expenseData);
+      saveData();
+
+      document.getElementById('formPengeluaran').reset();
+      setupCurrencyInputs(document.getElementById('formPengeluaran'));
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Simpan Pengeluaran';
+      refreshUI();
+    });
+
+    document.getElementById('formKlaimGaransi').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const transactionNo = document.getElementById('claimTransactionNo').value.trim().toUpperCase();
+      const service = allData.services.find(s => s.id === transactionNo);
+      if (!service) {
+        showToast('Nomor transaksi tidak ditemukan. Cek kembali nomor servisnya.', 'error', 'Transaksi Tidak Ada');
+        return;
+      }
+
+      const warrantyInfo = getWarrantyInfo(service);
+      if (!warrantyInfo.active) {
+        showToast(`Garansi tidak aktif: ${warrantyInfo.label}`, 'warning', 'Garansi Belum Bisa Diklaim');
+        return;
+      }
+
+      const claim = {
+        id: `CLM-${new Date().getFullYear()}-${String(allData.nextClaimId).padStart(5, '0')}`,
+        serviceId: service.id,
+        customerName: service.customer.name,
+        phone: service.customer.phone,
+        device: `${service.device.brand} ${service.device.model}`,
+        complaint: document.getElementById('claimComplaint').value,
+        techNote: document.getElementById('claimTechNote').value,
+        status: 'diajukan',
+        createdAt: new Date().toISOString()
+      };
+
+      allData.warrantyClaims.push(claim);
+      allData.nextClaimId += 1;
+      saveData();
+      document.getElementById('formKlaimGaransi').reset();
+      refreshUI();
+      showToast(`Klaim garansi tersimpan: ${claim.id}`, 'success', 'Klaim Dibuat');
+    });
+
+    function updateClaimList() {
+      const list = document.getElementById('claimList');
+      if (!list) return;
+
+      if (allData.warrantyClaims.length === 0) {
+        list.innerHTML = '<p class="text-slate-400 text-center py-4">Belum ada klaim garansi</p>';
+        return;
+      }
+
+      list.innerHTML = allData.warrantyClaims.slice().reverse().map(claim => `
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p class="text-blue-400 font-semibold">${claim.id}</p>
+              <p class="text-sm text-white">${claim.customerName} - ${claim.device}</p>
+              <p class="text-xs text-slate-400">${claim.serviceId} | ${formatDate(claim.createdAt)}</p>
+            </div>
+            <select onchange="updateClaimStatus('${claim.id}', this.value)" class="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs focus:outline-none focus:border-cyan-500">
+              <option value="${claim.status}">${claim.status}</option>
+              <option value="dicek">Dicek</option>
+              <option value="diterima">Diterima</option>
+              <option value="ditolak">Ditolak</option>
+              <option value="selesai">Selesai</option>
+            </select>
+          </div>
+          <p class="text-sm text-slate-300">${claim.complaint}</p>
+          <p class="text-xs text-slate-400 mt-2">Catatan teknisi: ${claim.techNote || '-'}</p>
+        </div>
+      `).join('');
+      setupChoicePickers(list);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function updateClaimStatus(claimId, status) {
+      const claim = allData.warrantyClaims.find(item => item.id === claimId);
+      if (!claim || !status) return;
+      claim.status = status;
+      saveData();
+      refreshUI();
+    }
+
+    document.getElementById('formSparepart').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const part = {
+        id: `PRT-${String(allData.nextPartId).padStart(4, '0')}`,
+        name: document.getElementById('partName').value,
+        category: document.getElementById('partCategory').value,
+        stock: parseInt(document.getElementById('partStock').value, 10) || 0,
+        minStock: parseInt(document.getElementById('partMinStock').value, 10) || 0,
+        cost: parseCurrencyInput(document.getElementById('partCost').value),
+        price: parseCurrencyInput(document.getElementById('partPrice').value),
+        supplier: document.getElementById('partSupplier').value,
+        createdAt: new Date().toISOString()
+      };
+
+      allData.inventory.push(part);
+      allData.nextPartId += 1;
+      saveData();
+      document.getElementById('formSparepart').reset();
+      setupCurrencyInputs(document.getElementById('formSparepart'));
+      refreshUI();
+    });
+
+    function updateInventoryList() {
+      const list = document.getElementById('inventoryList');
+      if (!list) return;
+
+      const search = (document.getElementById('partSearch')?.value || '').trim().toUpperCase();
+      const parts = allData.inventory.filter(part => {
+        const text = `${part.name} ${part.category} ${part.supplier}`.toUpperCase();
+        return !search || text.includes(search);
+      });
+
+      if (parts.length === 0) {
+        list.innerHTML = '<p class="text-slate-400 text-center py-4">Belum ada sparepart</p>';
+        return;
+      }
+
+      list.innerHTML = parts.map(part => {
+        const lowStock = part.stock <= part.minStock;
+        return `
+          <div class="bg-slate-800 rounded-lg p-4 border ${lowStock ? 'border-red-700' : 'border-slate-700'}">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-white font-semibold">${part.name}</p>
+                <p class="text-xs text-slate-400 capitalize">${part.category} | Supplier: ${part.supplier || '-'}</p>
+                <p class="text-xs ${lowStock ? 'text-red-300' : 'text-slate-400'} mt-1">Stok: ${part.stock} | Minimum: ${part.minStock}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-green-400 font-semibold">${formatCurrency(part.price)}</p>
+                <p class="text-xs text-slate-400">Modal ${formatCurrency(part.cost)}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 mt-3">
+              <button onclick="adjustStock('${part.id}', 1)" class="bg-green-700 hover:bg-green-600 text-white px-3 py-1 rounded text-xs">+ Stok</button>
+              <button onclick="adjustStock('${part.id}', -1)" class="bg-red-700 hover:bg-red-600 text-white px-3 py-1 rounded text-xs">- Stok</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function adjustStock(partId, delta) {
+      const part = allData.inventory.find(item => item.id === partId);
+      if (!part) return;
+      part.stock = Math.max(0, part.stock + delta);
+      saveData();
+      refreshUI();
+    }
+
+    function updateCustomerList() {
+      const list = document.getElementById('customerList');
+      if (!list) return;
+
+      const customers = new Map();
+      allData.services.forEach(service => {
+        const key = service.customer.phone || service.customer.name;
+        if (!customers.has(key)) {
+          customers.set(key, {
+            name: service.customer.name,
+            phone: service.customer.phone,
+            address: service.customer.address,
+            services: [],
+            totalSpend: 0
+          });
+        }
+
+        const customer = customers.get(key);
+        customer.services.push(service);
+        customer.totalSpend += getServiceIncome(service);
+      });
+
+      const search = (document.getElementById('customerSearch')?.value || '').trim().toUpperCase();
+      const rows = Array.from(customers.values()).filter(customer => {
+        const text = `${customer.name} ${customer.phone}`.toUpperCase();
+        return !search || text.includes(search);
+      });
+
+      if (rows.length === 0) {
+        list.innerHTML = '<p class="text-slate-400 text-center py-4">Belum ada pelanggan</p>';
+        return;
+      }
+
+      list.innerHTML = rows.map(customer => `
+        <div class="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-white font-semibold">${customer.name}</p>
+              <p class="text-sm text-slate-400">${customer.phone || '-'} | ${customer.address || '-'}</p>
+              <p class="text-xs text-slate-500 mt-1">${customer.services.length} transaksi servis</p>
+            </div>
+            <p class="text-green-400 font-bold">${formatCurrency(customer.totalSpend)}</p>
+          </div>
+          <div class="mt-3 space-y-2">
+            ${customer.services.slice(-3).reverse().map(service => `
+              <div class="text-xs bg-slate-900 rounded p-2 text-slate-300">
+                ${service.id} - ${service.device.brand} ${service.device.model} - ${service.status}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getReportRange() {
+      const period = document.getElementById('reportPeriod')?.value || 'today';
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+
+      if (period === 'week') {
+        start.setDate(start.getDate() - 6);
+      } else if (period === 'month') {
+        start.setDate(1);
+      } else if (period === 'all') {
+        return null;
+      }
+
+      return start;
+    }
+
+    function inReportRange(dateString) {
+      const start = getReportRange();
+      if (!start) return true;
+      return new Date(dateString) >= start;
+    }
+
+    function updateReports() {
+      const summary = document.getElementById('reportSummary');
+      if (!summary) return;
+
+      const services = allData.services.filter(service => inReportRange(service.createdAt));
+      const expenses = allData.expenses.filter(expense => inReportRange(expense.createdAt));
+      const income = services.reduce((sum, service) => sum + getServiceIncome(service), 0);
+      const expenseTotal = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const profit = income - expenseTotal;
+      const unpaid = services.reduce((sum, service) => {
+        const paid = getServiceIncome(service);
+        return sum + Math.max(getServiceNetTotal(service) - paid, 0);
+      }, 0);
+
+      summary.innerHTML = [
+        ['Pemasukan Kotor', income, 'from-green-500 to-emerald-600'],
+        ['Pengeluaran', expenseTotal, 'from-red-500 to-rose-600'],
+        ['Profit Bersih', profit, profit >= 0 ? 'from-blue-500 to-cyan-600' : 'from-orange-500 to-red-600'],
+        ['Piutang Servis', unpaid, 'from-yellow-500 to-amber-600']
+      ].map(([label, value, color]) => `
+        <div class="bg-gradient-to-br ${color} rounded-xl p-5 text-white shadow-lg">
+          <p class="text-sm opacity-90 mb-2">${label}</p>
+          <p class="text-2xl font-bold">${formatCurrency(value)}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('serviceReportList').innerHTML = services.length === 0
+        ? '<p class="text-slate-400 text-center py-4">Belum ada servis di periode ini</p>'
+        : services.slice().reverse().map(service => `
+          <div class="bg-slate-800 rounded-lg p-3 border border-slate-700 text-sm">
+            <div class="flex justify-between gap-3">
+              <span class="text-slate-300">${service.id} - ${service.customer.name}</span>
+              <span class="text-green-400 font-semibold">${formatCurrency(getServiceIncome(service))}</span>
+            </div>
+            <p class="text-xs text-slate-500">${new Date(service.createdAt).toLocaleDateString('id-ID')} | ${service.status}</p>
+          </div>
+        `).join('');
+
+      document.getElementById('expenseReportList').innerHTML = expenses.length === 0
+        ? '<p class="text-slate-400 text-center py-4">Belum ada pengeluaran di periode ini</p>'
+        : expenses.slice().reverse().map(expense => `
+          <div class="bg-slate-800 rounded-lg p-3 border border-slate-700 text-sm">
+            <div class="flex justify-between gap-3">
+              <span class="text-slate-300 capitalize">${expense.category} - ${expense.description || '-'}</span>
+              <span class="text-red-400 font-semibold">${formatCurrency(expense.amount)}</span>
+            </div>
+            <p class="text-xs text-slate-500">${new Date(expense.createdAt).toLocaleDateString('id-ID')}</p>
+          </div>
+        `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        loadData();
+        localStorage.setItem('serviceHpManagerRole', 'teknisi');
+        populateDamageTypes();
+        setupCurrencyInputs();
+        setupChoicePickers();
+        applyRoleView();
+        refreshUI();
+        switchTab(getInitialTab());
+        requestAnimationFrame(() => {
+          document.body.classList.remove('app-booting');
+        });
+        initRealtimeDatabase().catch(error => {
+          console.error('Gagal sinkron database:', error);
+          hideLoading();
+        });
+      } catch (error) {
+        console.error('Gagal menyiapkan halaman:', error);
+        switchTab(getDefaultTab());
+        requestAnimationFrame(() => {
+          document.body.classList.remove('app-booting');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
